@@ -1,0 +1,287 @@
+-- Drop existing tables to ensure a clean setup
+DROP TABLE IF EXISTS stock_data, stocks, watchlists CASCADE;
+
+-- Create watchlists table
+CREATE TABLE watchlists (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+-- Create stocks table
+CREATE TABLE stocks (
+    id SERIAL PRIMARY KEY,
+    watchlist_id INTEGER REFERENCES watchlists(id) ON DELETE CASCADE,
+    symbol VARCHAR(10) NOT NULL,
+    UNIQUE (watchlist_id, symbol)
+);
+
+-- Create stock_data table
+CREATE TABLE stock_data (
+    stock_id INTEGER PRIMARY KEY REFERENCES stocks(id) ON DELETE CASCADE,
+    symbol VARCHAR(10) NOT NULL,
+    close NUMERIC,
+    open NUMERIC,
+    high NUMERIC,
+    low NUMERIC,
+    volume BIGINT,
+    trend VARCHAR(10),
+    macd_signal VARCHAR(10),
+    mini_news TEXT,
+    news_items JSONB,
+    change_percent NUMERIC,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_stocks_symbol ON stocks(symbol);
+CREATE INDEX idx_stocks_watchlist_id ON stocks(watchlist_id);
+CREATE INDEX idx_stock_data_symbol ON stock_data(symbol);
+CREATE INDEX idx_stock_data_trend ON stock_data(trend);
+CREATE INDEX idx_stock_data_volume ON stock_data(volume);
+CREATE INDEX idx_stock_data_created_at ON stock_data(created_at);
+
+-- Insert watchlists
+INSERT INTO watchlists (name) VALUES
+('Penny Stocks'),
+('Dividend Stocks'),
+('Industry Leaders'),
+('AI and Tech Innovation'),
+('Clean Energy');
+
+-- Insert stocks for each watchlist
+INSERT INTO stocks (watchlist_id, symbol) VALUES
+-- Penny Stocks: High-volatility stocks under $5 with recent catalysts
+(1, 'AMPX'),  -- Amprius Technologies (EV batteries)
+(1, 'ABCL'),  -- AbCellera Biologics (biotech)
+(1, 'RZLV'),  -- Rezolve AI (AI commerce)
+(1, 'SBET'),  -- Sharplink Gaming (crypto gaming)
+(1, 'KULR'),  -- KULR Technology (EV/Bitcoin)
+-- Dividend Stocks: Stable, high-yield stocks
+(2, 'JNJ'),   -- Johnson & Johnson (healthcare, ~3% yield)
+(2, 'PG'),    -- Procter & Gamble (consumer goods, ~2.5% yield)
+(2, 'KO'),    -- Coca-Cola (beverages, ~3% yield)
+(2, 'PFE'),   -- Pfizer (healthcare, ~5% yield)
+(2, 'PM'),    -- Philip Morris (tobacco, ~4.5% yield)
+-- Industry Leaders: Large-cap market leaders
+(3, 'AAPL'),  -- Apple (tech)
+(3, 'MSFT'),  -- Microsoft (tech)
+(3, 'GOOGL'), -- Alphabet (tech)
+(3, 'JPM'),   -- JPMorgan Chase (finance)
+(3, 'XOM'),   -- ExxonMobil (energy)
+-- AI and Tech Innovation: High-growth tech for 2025
+(4, 'NVDA'),  -- NVIDIA (AI chips)
+(4, 'AMD'),   -- AMD (semiconductors)
+(4, 'TSLA'),  -- Tesla (AI/EV)
+(4, 'RGTI'),  -- Rigetti Computing (quantum computing)
+(4, 'MARA'),  -- Marathon Digital (Bitcoin/AI)
+-- Clean Energy: Renewable energy and nuclear for 2025
+(5, 'OKLO'),  -- Oklo Inc (nuclear)
+(5, 'UEC'),   -- Uranium Energy (uranium)
+(5, 'LTBR'),  -- Lightbridge (nuclear)
+(5, 'NEE'),   -- NextEra Energy (renewables)
+(5, 'ENPH');  -- Enphase Energy (solar)
+
+-- Insert mock stock_data for Penny Stocks watchlist
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'AMPX', 2.50, 2.40, 2.60, 2.30, 300000, 'Up', 'Buy', 'Bullish pennant breakout',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "Bullish pennant breakout confirmed"}, {"date": "2025-07-12 15:30 EDT", "text": "New EV battery contract announced"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades AMPX"}]'::jsonb,
+    4.17, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'AMPX' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Penny Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'ABCL', 3.00, 2.90, 3.10, 2.80, 250000, 'Up', 'Buy', 'Double bottom reversal',
+    '[{"date": "2025-07-13 07:00 EDT", "text": "Double bottom reversal triggered"}, {"date": "2025-07-12 11:00 EDT", "text": "New biotech partnership"}, {"date": "2025-07-11 09:00 EDT", "text": "Positive trial results"}]'::jsonb,
+    3.45, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'ABCL' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Penny Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'RZLV', 4.00, 3.90, 4.10, 3.80, 200000, 'Up', 'Buy', 'Bull flag breakout',
+    '[{"date": "2025-07-13 10:00 EDT", "text": "Bull flag breakout confirmed"}, {"date": "2025-07-12 09:00 EDT", "text": "AI commerce platform expansion"}, {"date": "2025-07-11 08:00 EDT", "text": "New retail partnership"}]'::jsonb,
+    2.56, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'RZLV' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Penny Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'SBET', 1.50, 1.40, 1.60, 1.30, 400000, 'Up', 'Buy', 'Crypto gaming surge',
+    '[{"date": "2025-07-13 08:30 EDT", "text": "Crypto gaming surge reported"}, {"date": "2025-07-12 10:00 EDT", "text": "New Ethereum integration"}, {"date": "2025-07-11 11:00 EDT", "text": "Analyst coverage initiated"}]'::jsonb,
+    7.14, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'SBET' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Penny Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'KULR', 0.40, 0.42, 0.43, 0.39, 500000, 'Down', 'Sell', 'New battery tech patent filed',
+    '[{"date": "2025-07-13 10:00 EDT", "text": "New battery tech patent filed"}, {"date": "2025-07-12 09:00 EDT", "text": "Partnership with aerospace firm"}, {"date": "2025-07-11 08:00 EDT", "text": "Q2 results expected next week"}]'::jsonb,
+    -4.76, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'KULR' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Penny Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+-- Insert mock stock_data for Dividend Stocks watchlist
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'JNJ', 156.90, 157.09, 157.18, 155.18, 2000000, 'Down', 'Sell', 'Q2 earnings released',
+    '[{"date": "2025-07-13 08:00 EDT", "text": "Q2 earnings released"}, {"date": "2025-07-12 12:00 EDT", "text": "Dividend increase announced"}, {"date": "2025-07-11 14:00 EDT", "text": "New healthcare product launch"}]'::jsonb,
+    -0.12, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'JNJ' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Dividend Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'PG', 157.05, 158.05, 158.05, 156.44, 1500000, 'Down', 'Sell', 'New product line announced',
+    '[{"date": "2025-07-13 07:00 EDT", "text": "New product line announced"}, {"date": "2025-07-12 11:00 EDT", "text": "Dividend payout confirmed"}, {"date": "2025-07-11 09:00 EDT", "text": "Q2 sales report released"}]'::jsonb,
+    -0.63, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'PG' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Dividend Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'KO', 69.87, 69.57, 70.16, 69.25, 1800000, 'Up', 'Buy', 'Global sales increase',
+    '[{"date": "2025-07-13 08:30 EDT", "text": "Global sales increase reported"}, {"date": "2025-07-12 10:00 EDT", "text": "Dividend payout announced"}, {"date": "2025-07-11 11:00 EDT", "text": "New marketing campaign launched"}]'::jsonb,
+    0.43, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'KO' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Dividend Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'PFE', 25.65, 25.65, 25.72, 25.42, 2200000, 'Neutral', 'Neutral', 'New vaccine trial results',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "New vaccine trial results"}, {"date": "2025-07-12 15:30 EDT", "text": "Dividend increase planned"}, {"date": "2025-07-11 10:00 EDT", "text": "Partnership with biotech firm"}]'::jsonb,
+    0.00, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'PFE' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Dividend Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'PM', 179.91, 179.96, 180.22, 178.09, 1700000, 'Down', 'Sell', 'Q2 earnings beat expectations',
+    '[{"date": "2025-07-13 08:00 EDT", "text": "Q2 earnings beat expectations"}, {"date": "2025-07-12 12:00 EDT", "text": "Dividend payout confirmed"}, {"date": "2025-07-11 14:00 EDT", "text": "New product launch"}]'::jsonb,
+    -0.03, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'PM' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Dividend Stocks')
+ON CONFLICT (stock_id) DO NOTHING;
+
+-- Insert mock stock_data for Industry Leaders watchlist
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'AAPL', 211.16, 210.57, 212.13, 209.86, 2500000, 'Up', 'Buy', 'New iPhone launch',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "New iPhone launch announced"}, {"date": "2025-07-12 15:30 EDT", "text": "Q2 earnings preview"}, {"date": "2025-07-11 10:00 EDT", "text": "AI integration in iOS"}]'::jsonb,
+    0.28, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'AAPL' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Industry Leaders')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'MSFT', 503.32, 498.47, 505.03, 497.80, 3000000, 'Up', 'Buy', 'Cloud growth reported',
+    '[{"date": "2025-07-13 08:00 EDT", "text": "Cloud growth reported"}, {"date": "2025-07-12 12:00 EDT", "text": "New AI product launch"}, {"date": "2025-07-11 14:00 EDT", "text": "Q2 earnings beat"}]'::jsonb,
+    0.97, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'MSFT' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Industry Leaders')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'GOOGL', 180.19, 176.79, 181.43, 176.48, 2800000, 'Up', 'Buy', 'AI search improvements',
+    '[{"date": "2025-07-13 07:00 EDT", "text": "AI search improvements announced"}, {"date": "2025-07-12 11:00 EDT", "text": "Cloud revenue growth"}, {"date": "2025-07-11 09:00 EDT", "text": "Q2 results released"}]'::jsonb,
+    1.93, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'GOOGL' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Industry Leaders')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'JPM', 286.86, 285.52, 287.38, 283.66, 2200000, 'Up', 'Buy', 'Strong Q2 earnings',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "Strong Q2 earnings reported"}, {"date": "2025-07-12 15:30 EDT", "text": "New banking app launched"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades JPM"}]'::jsonb,
+    0.47, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'JPM' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Industry Leaders')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'XOM', 115.43, 114.85, 115.76, 114.51, 2000000, 'Up', 'Buy', 'Oil demand increase',
+    '[{"date": "2025-07-13 08:30 EDT", "text": "Oil demand increase reported"}, {"date": "2025-07-12 10:00 EDT", "text": "New drilling project"}, {"date": "2025-07-11 11:00 EDT", "text": "Q2 earnings preview"}]'::jsonb,
+    0.51, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'XOM' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Industry Leaders')
+ON CONFLICT (stock_id) DO NOTHING;
+
+-- Insert mock stock_data for AI and Tech Innovation watchlist
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'NVDA', 164.92, 163.72, 167.89, 163.47, 3500000, 'Up', 'Buy', 'New AI chip launch',
+    '[{"date": "2025-07-13 08:00 EDT", "text": "New AI chip launch announced"}, {"date": "2025-07-12 12:00 EDT", "text": "Hits $4T market cap"}, {"date": "2025-07-11 14:00 EDT", "text": "Expands AI research lab"}]'::jsonb,
+    0.73, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'NVDA' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'AI and Tech Innovation')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'AMD', 146.42, 142.60, 147.40, 141.60, 3000000, 'Up', 'Buy', 'New semiconductor deal',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "New semiconductor deal signed"}, {"date": "2025-07-12 15:30 EDT", "text": "Q2 earnings beat"}, {"date": "2025-07-11 10:00 EDT", "text": "AI chip production ramp-up"}]'::jsonb,
+    2.68, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'AMD' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'AI and Tech Innovation')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'TSLA', 240.00, 245.00, 248.00, 238.00, 1500000, 'Down', 'Sell', 'Regulatory scrutiny on self-driving tech',
+    '[{"date": "2025-07-13 07:00 EDT", "text": "Regulatory scrutiny on self-driving tech"}, {"date": "2025-07-12 11:00 EDT", "text": "Musk announces new factory"}, {"date": "2025-07-11 09:00 EDT", "text": "Q2 delivery numbers released"}]'::jsonb,
+    -2.04, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'TSLA' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'AI and Tech Innovation')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'RGTI', 2.80, 2.70, 2.90, 2.60, 250000, 'Up', 'Buy', 'Quantum computing partnership',
+    '[{"date": "2025-07-13 10:00 EDT", "text": "Quantum computing partnership announced"}, {"date": "2025-07-12 09:00 EDT", "text": "New quantum chip prototype"}, {"date": "2025-07-11 08:00 EDT", "text": "Analyst upgrades RGTI"}]'::jsonb,
+    3.70, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'RGTI' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'AI and Tech Innovation')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'MARA', 20.00, 19.50, 20.50, 19.30, 4000000, 'Up', 'Buy', 'Bitcoin mining expansion',
+    '[{"date": "2025-07-13 08:30 EDT", "text": "Bitcoin mining expansion announced"}, {"date": "2025-07-12 10:00 EDT", "text": "AI integration in mining"}, {"date": "2025-07-11 11:00 EDT", "text": "Q2 earnings preview"}]'::jsonb,
+    2.56, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'MARA' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'AI and Tech Innovation')
+ON CONFLICT (stock_id) DO NOTHING;
+
+-- Insert mock stock_data for Clean Energy watchlist
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'OKLO', 4.50, 4.30, 4.60, 4.20, 300000, 'Up', 'Buy', 'Trump nuclear policy boost',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "Trump nuclear policy boost"}, {"date": "2025-07-12 15:30 EDT", "text": "New nuclear facility planned"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades OKLO"}]'::jsonb,
+    4.65, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'OKLO' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Clean Energy')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'UEC', 4.80, 4.60, 4.90, 4.50, 350000, 'Up', 'Buy', 'Uranium demand surge',
+    '[{"date": "2025-07-13 08:00 EDT", "text": "Uranium demand surge reported"}, {"date": "2025-07-12 12:00 EDT", "text": "New mining contract"}, {"date": "2025-07-11 14:00 EDT", "text": "Q2 earnings beat"}]'::jsonb,
+    4.35, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'UEC' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Clean Energy')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'LTBR', 3.90, 3.80, 4.00, 3.70, 200000, 'Up', 'Buy', 'Nuclear fuel innovation',
+    '[{"date": "2025-07-13 07:00 EDT", "text": "Nuclear fuel innovation announced"}, {"date": "2025-07-12 11:00 EDT", "text": "New patent filed"}, {"date": "2025-07-11 09:00 EDT", "text": "Analyst coverage initiated"}]'::jsonb,
+    2.63, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'LTBR' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Clean Energy')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'NEE', 75.00, 74.50, 75.50, 74.20, 1800000, 'Up', 'Buy', 'Renewable energy expansion',
+    '[{"date": "2025-07-13 08:30 EDT", "text": "Renewable energy expansion announced"}, {"date": "2025-07-12 10:00 EDT", "text": "New wind farm project"}, {"date": "2025-07-11 11:00 EDT", "text": "Q2 earnings preview"}]'::jsonb,
+    0.67, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'NEE' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Clean Energy')
+ON CONFLICT (stock_id) DO NOTHING;
+
+INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
+SELECT 
+    s.id, 'ENPH', 110.00, 108.50, 111.00, 107.50, 1600000, 'Up', 'Buy', 'Solar inverter demand increase',
+    '[{"date": "2025-07-13 09:00 EDT", "text": "Solar inverter demand increase"}, {"date": "2025-07-12 15:30 EDT", "text": "New product launch"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades ENPH"}]'::jsonb,
+    1.38, CURRENT_TIMESTAMP
+FROM stocks s WHERE s.symbol = 'ENPH' AND s.watchlist_id = (SELECT id FROM watchlists WHERE name = 'Clean Energy')
+ON CONFLICT (stock_id) DO NOTHING;
