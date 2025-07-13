@@ -1,123 +1,151 @@
-# Market Sirens
+Market Siren
+Market Siren is a Flask-based web application designed for managing stock watchlists and fetching real-time financial data. It integrates with Finnhub (primary), Marketstack (fallback), and NewsAPI for stock prices and news, using PostgreSQL for persistent storage and caching. Users can create, rename, and delete watchlists, add/remove stocks, and view detailed stock data in a modern, responsive dashboard optimized for trillion-dollar-scale performance.
+Features
 
-Market Sirens is a Flask-based web application for managing stock watchlists, integrating with the Marketstack API to fetch real-time stock data and PostgreSQL for persistent storage. Users can create watchlists, add/delete stocks, and view stock details in a user-friendly dashboard.
+Create, rename, and delete stock watchlists.
+Add/delete stocks to/from watchlists.
+Fetch real-time stock data from Finnhub (primary) and Marketstack (fallback).
+Retrieve stock-related news via NewsAPI.
+Cache data in PostgreSQL to minimize API calls.
+Display stock prices, trends, and news in a user-friendly, grid-based UI.
+Support for curated watchlists: Penny Stocks, Dividend Stocks, Industry Leaders, AI and Tech Innovation, Clean Energy.
+Flash messages for user feedback.
+Secure environment variable management with python-dotenv.
 
-## Features
-- Create and manage stock watchlists.
-- Add/delete stocks to/from watchlists.
-- Fetch real-time stock data via Marketstack API.
-- PostgreSQL database for storing watchlists and stocks.
-- Flash messages for user feedback.
-- Secure environment variable management with `python-dotenv`.
+Prerequisites
 
-## Prerequisites
-- Python 3.11+
-- PostgreSQL 14+
-- Marketstack API key
-- Git
+Python 3.8+
+PostgreSQL 14+
+API keys for Finnhub, Marketstack, and NewsAPI
+Git
 
-## Setup Instructions
+Setup Instructions
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/yourusername/market-sirens.git
-   cd market-sirens
-   ```
+Clone the Repository:
+git clone https://github.com/yourusername/market-siren.git
+cd market-siren
 
-2. **Set Up Virtual Environment**:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
 
-3. **Configure PostgreSQL**:
-   - Install PostgreSQL:
-     ```bash
-     sudo apt update
-     sudo apt install postgresql postgresql-contrib
-     ```
-   - Start PostgreSQL:
-     ```bash
-     sudo systemctl start postgresql
-     sudo systemctl enable postgresql
-     ```
-   - Create database and user:
-     ```bash
-     sudo -u postgres psql
-     CREATE DATABASE marketsirens;
-     CREATE USER sirenuser WITH PASSWORD 'yourpassword';
-     GRANT ALL PRIVILEGES ON DATABASE marketsirens TO sirenuser;
-     \q
-     ```
-   - Initialize schema:
-     ```bash
-     psql -U sirenuser -d marketsirens -f schema.sql
-     ```
+Set Up Virtual Environment:
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-4. **Configure Environment**:
-   - Copy `.env.example` to `.env`:
-     ```bash
-     cp .env.example .env
-     ```
-   - Edit `.env`:
-     ```
-     DATABASE_URL=postgresql://sirenuser:yourpassword@localhost:5432/marketsirens
-     SECRET_KEY=your_secret_key_here
-     MARKETSTACK_API_KEY=your_marketstack_api_key_here
-     ```
 
-5. **Run the Application**:
-   ```bash
-   python app.py
-   ```
-   Access at `http://localhost:5002`.
+Configure PostgreSQL:
 
-## Project Structure
-```
-market-sirens/
+Install PostgreSQL:sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+
+Start PostgreSQL:sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+
+Create database and user:sudo -u postgres psql
+CREATE DATABASE market_db;
+CREATE USER sirenuser WITH PASSWORD 'yourpassword';
+GRANT ALL PRIVILEGES ON DATABASE market_db TO sirenuser;
+\q
+
+
+Initialize schema:psql -U sirenuser -d market_db -f schema.sql
+
+
+
+
+Configure Environment:
+
+Copy .env.example to .env:cp .env.example .env
+
+
+Edit .env with your credentials:SECRET_KEY=your_secret_key_here
+DATABASE_URL=postgresql://sirenuser:yourpassword@localhost:5432/market_db
+FINNHUB_API_KEY=your_finnhub_api_key
+MARKETSTACK_API_KEY=your_marketstack_api_key
+NEWSAPI_KEY=your_newsapi_api_key
+
+
+
+
+Run the Application:
+python app.py
+
+
+Access at http://localhost:5002.
+
+
+
+Project Structure
+market-siren/
 ├── app.py              # Main Flask application
 ├── requirements.txt    # Python dependencies
-├── schema.sql          # Database schema
+├── schema.sql          # Database schema and initial data
 ├── .env.example       # Example environment file
 ├── templates/         # HTML templates
-│   ├── index.html
-│   ├── stocks_list.html
-│   ├── stock_data.html
-│   ├── error.html
-```
+│   ├── index.html    # Main dashboard
+│   ├── error.html    # Error page
 
-## Future Integrations and Features
-1. **Alternative APIs**: Integrate Yahoo Finance or Alpha Vantage for stock data redundancy.
-2. **User Authentication**: Add OAuth2/login for user accounts.
-3. **Portfolio Tracking**: Calculate portfolio value and performance metrics.
-4. **Price Alerts**: Notify users via email/SMS when stocks hit price thresholds.
-5. **Charting**: Add interactive stock price charts using Chart.js.
-6. **Mobile App**: Develop iOS/Android apps with React Native.
-7. **WebSocket Updates**: Real-time stock price updates via WebSockets.
-8. **Machine Learning**: Predict stock trends using scikit-learn.
-9. **Export Data**: Allow CSV/Excel export of watchlists.
-10. **Dark Mode**: Implement a dark theme for UI.
-11. **Multi-Market Support**: Add support for crypto/forex markets.
-12. **Watchlist Sharing**: Enable public/private watchlist sharing.
-13. **API Endpoint**: Expose REST API for external integrations.
-14. **Unit Tests**: Add pytest for automated testing.
-15. **Docker Support**: Containerize app with Docker Compose.
-16. **Rate Limiting**: Implement Flask-Limiter for API abuse prevention.
-17. **Localization**: Support multiple languages for UI.
-18. **News Integration**: Fetch stock-related news via NewsAPI.
-19. **Performance Dashboard**: Visualize stock performance metrics.
-20. **CI/CD Pipeline**: Set up GitHub Actions for automated deployment.
+Data Pipeline and Lifecycle
 
-## Contributing
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/yourfeature`).
-3. Commit changes (`git commit -m 'Add yourfeature'`).
-4. Push to the branch (`git push origin feature/yourfeature`).
-5. Open a pull request.
+User Interaction: Users select a watchlist or stock via the UI, triggering a request.
+Database Query: The app checks the stock_data table for cached data (<24 hours old).
+API Calls: If data is missing or outdated:
+Finnhub: Fetches stock quotes (primary source, 60 calls/minute).
+Marketstack: Fallback for stock data (1000 calls/month).
+NewsAPI: Retrieves stock news (100 calls/day, non-commercial).
 
-## License
-MIT License. See `LICENSE` for details.
 
-## Contact
-For issues or suggestions, open a GitHub issue or contact [your.email@example.com](mailto:your.email@example.com).# MarketMachine
+Caching: Fetched data is stored in PostgreSQL with a timestamp to reduce API calls.
+UI Rendering: Data is displayed in a responsive grid with watchlists, stock details, news, market movers, and benchmarks.
+
+Database Structure
+
+watchlists: Stores watchlist metadata (id, name).
+stocks: Links stocks to watchlists (id, watchlist_id, symbol).
+stock_data: Caches stock data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at).
+Indexes: Optimize queries for symbol, watchlist_id, trend, volume, and created_at.
+
+Watchlists
+
+Penny Stocks: High-volatility stocks under $5 (AMPX, ABCL, RZLV, SBET, KULR).
+Dividend Stocks: Stable, high-yield stocks (JNJ, PG, KO, PFE, PM).
+Industry Leaders: Large-cap market leaders (AAPL, MSFT, GOOGL, JPM, XOM).
+AI and Tech Innovation: High-growth tech (NVDA, AMD, TSLA, RGTI, MARA).
+Clean Energy: Renewable and nuclear energy (OKLO, UEC, LTBR, NEE, ENPH).
+
+Future Integrations and Features
+
+User Authentication: Add OAuth2/login for personalized watchlists.
+Real-time Alerts: Notify via email or Telegram (using TELEGRAM_BOT_TOKEN) for price spikes.
+Sentiment Analysis: Use X API or Reddit for social media sentiment.
+Portfolio Tracking: Calculate portfolio value and performance.
+Technical Indicators: Display RSI, MACD, or moving averages.
+Stock Screener: Filter stocks by criteria (e.g., P/E ratio, volume).
+Historical Data: Show past stock prices and trends.
+Dividend Calendar: List upcoming dividend dates.
+Charting: Add interactive charts with Chart.js or Plotly.
+Export Data: Allow CSV/Excel export of watchlists.
+Dark Mode: Implement a dark theme for UI.
+Mobile App: Develop iOS/Android apps with React Native.
+WebSocket Updates: Enable real-time updates via WebSockets.
+Machine Learning: Predict trends using scikit-learn.
+Multi-Market Support: Add crypto/forex markets.
+Watchlist Sharing: Enable public/private watchlist sharing.
+API Endpoint: Expose REST API for external integrations.
+Unit Tests: Add pytest for automated testing.
+Docker Support: Containerize with Docker Compose.
+Rate Limiting: Implement Flask-Limiter for API abuse prevention.
+
+Contributing
+
+Fork the repository.
+Create a feature branch: git checkout -b feature/yourfeature.
+Commit changes: git commit -m 'Add yourfeature'.
+Push to the branch: git push origin feature/yourfeature.
+Open a pull request.
+
+License
+MIT License. See LICENSE for details.
+Contact
+For issues or suggestions, open a GitHub issue or contact your.email@example.com.
