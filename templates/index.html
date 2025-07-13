@@ -99,6 +99,13 @@
         .delete-btn:hover {
             background-color: #cc0000;
         }
+        .fetch-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .fetch-btn:hover {
+            background-color: #45a049;
+        }
         ul {
             list-style: none;
             padding: 0;
@@ -125,6 +132,10 @@
         th {
             background-color: #f2f2f2;
             color: #333;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #e0e0e0;
         }
         .flash-messages {
             grid-column: 1 / -1;
@@ -146,6 +157,20 @@
         .flash-messages .info {
             background-color: #d1ecf1;
             color: #0c5460;
+        }
+        canvas {
+            margin-top: 20px;
+            max-width: 100%;
+        }
+        .arrow-up {
+            color: #4CAF50;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        .arrow-down {
+            color: #ff4d4d;
+            font-size: 12px;
+            margin-left: 4px;
         }
         @media (max-width: 768px) {
             .container {
@@ -227,6 +252,9 @@
                         <li>
                             <span>{{ stock[1] }}</span>
                             <div>
+                                <form action="{{ url_for('index', watchlist_id=selected_watchlist_id, stock_id=stock[0]) }}" method="GET" style="display: inline;">
+                                    <button type="submit" class="fetch-btn">View Data</button>
+                                </form>
                                 <form action="{{ url_for('delete_stock', stock_id=stock[0]) }}" method="POST" style="display: inline;">
                                     <button type="submit" class="delete-btn">Delete</button>
                                 </form>
@@ -245,32 +273,123 @@
         <div class="stock-data-table">
             {% if stock_data_list %}
                 <h3>Stock Data</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Symbol</th>
-                            <th>Close</th>
-                            <th>Open</th>
-                            <th>High</th>
-                            <th>Low</th>
-                            <th>Volume</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                {% if selected_stock_id %}
+                    {% for stock_data in stock_data_list %}
+                        <div class="stock-info">
+                            <p><strong>Symbol:</strong> {{ stock_data.symbol }}</p>
+                            <p><strong>Price:</strong> ${{ stock_data.close }} 
+                                {% if stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float > stock_data.open|float %}
+                                    <span class="arrow-up">▲</span>
+                                {% elif stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float < stock_data.open|float %}
+                                    <span class="arrow-down">▼</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Open Price:</strong> ${{ stock_data.open }}
+                                {% if stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float > stock_data.open|float %}
+                                    <span class="arrow-up">▲</span>
+                                {% elif stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float < stock_data.open|float %}
+                                    <span class="arrow-down">▼</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>High Price:</strong> ${{ stock_data.high }}</p>
+                            <p><strong>Low Price:</strong> ${{ stock_data.low }}</p>
+                            <p><strong>Volume:</strong> {{ stock_data.volume }}</p>
+                            <canvas id="priceChart-{{ stock_data.symbol }}" width="400" height="200"></canvas>
+                        </div>
+                    {% endfor %}
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                    <script>
                         {% for stock_data in stock_data_list %}
-                            <tr>
-                                <td>{{ stock_data.symbol }}</td>
-                                <td>${{ stock_data.close }}</td>
-                                <td>${{ stock_data.open }}</td>
-                                <td>${{ stock_data.high }}</td>
-                                <td>${{ stock_data.low }}</td>
-                                <td>{{ stock_data.volume }}</td>
-                            </tr>
+                            const ctx_{{ stock_data.symbol }} = document.getElementById('priceChart-{{ stock_data.symbol }}').getContext('2d');
+                            new Chart(ctx_{{ stock_data.symbol }}, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['Open', 'High', 'Low', 'Close'],
+                                    datasets: [{
+                                        label: '{{ stock_data.symbol }} Prices',
+                                        data: [{{ stock_data.open }}, {{ stock_data.high }}, {{ stock_data.low }}, {{ stock_data.close }}],
+                                        backgroundColor: ['#4CAF50', '#2196F3', '#F44336', '#FF9800']
+                                    }]
+                                },
+                                options: { scales: { y: { beginAtZero: false } } }
+                            });
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </script>
+                {% else %}
+                    <table id="stockTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0, 'string')">Symbol</th>
+                                <th onclick="sortTable(1, 'number')">Close</th>
+                                <th onclick="sortTable(2, 'number')">Open</th>
+                                <th onclick="sortTable(3, 'number')">High</th>
+                                <th onclick="sortTable(4, 'number')">Low</th>
+                                <th onclick="sortTable(5, 'number')">Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock_data in stock_data_list %}
+                                <tr>
+                                    <td>{{ stock_data.symbol }}</td>
+                                    <td>
+                                        {{ stock_data.close }}
+                                        {% if stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float > stock_data.open|float %}
+                                            <span class="arrow-up">▲</span>
+                                        {% elif stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float < stock_data.open|float %}
+                                            <span class="arrow-down">▼</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ stock_data.open }}
+                                        {% if stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float > stock_data.open|float %}
+                                            <span class="arrow-up">▲</span>
+                                        {% elif stock_data.close != 'N/A' and stock_data.open != 'N/A' and stock_data.close|float < stock_data.open|float %}
+                                            <span class="arrow-down">▼</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ stock_data.high }}</td>
+                                    <td>{{ stock_data.low }}</td>
+                                    <td>{{ stock_data.volume }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <script>
+                        function sortTable(columnIndex, type) {
+                            const table = document.getElementById("stockTable");
+                            const tbody = table.getElementsByTagName("tbody")[0];
+                            const rows = Array.from(tbody.getElementsByTagName("tr"));
+                            const isAscending = table.dataset.sortColumn === columnIndex.toString() ? 
+                                table.dataset.sortOrder !== "asc" : true;
+
+                            rows.sort((a, b) => {
+                                let aValue = a.cells[columnIndex].textContent.split(' ')[0]; // Remove arrow for sorting
+                                let bValue = b.cells[columnIndex].textContent.split(' ')[0]; // Remove arrow for sorting
+
+                                if (type === 'number') {
+                                    aValue = aValue === 'N/A' ? -Infinity : parseFloat(aValue);
+                                    bValue = bValue === 'N/A' ? -Infinity : parseFloat(bValue);
+                                    return isAscending ? aValue - bValue : bValue - aValue;
+                                } else {
+                                    return isAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+                                }
+                            });
+
+                            while (tbody.firstChild) {
+                                tbody.removeChild(tbody.firstChild);
+                            }
+                            rows.forEach(row => tbody.appendChild(row));
+
+                            table.dataset.sortColumn = columnIndex;
+                            table.dataset.sortOrder = isAscending ? "asc" : "desc";
+                        }
+
+                        // Initial sort by Symbol (ascending)
+                        sortTable(0, 'string');
+                    </script>
+                {% endif %}
             {% else %}
-                <p>No stock data available. Select a watchlist to view data.</p>
+                <p>No stock data available. Select a watchlist or stock to view data.</p>
             {% endif %}
         </div>
     </div>

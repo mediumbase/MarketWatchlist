@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 import logging
 import requests
+from time import sleep
+from requests.exceptions import HTTPError
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +31,39 @@ def get_db_connection():
         logging.error(f"Database connection error: {e}")
         return None
 
+def fetch_stock_data_api(symbol):
+    endpoint = f"{MARKETSTACK_BASE_URL}/tickers/{symbol.lower()}/eod/latest"
+    params = {"access_key": MARKETSTACK_API_KEY}
+    for attempt in range(3):
+        try:
+            response = requests.get(endpoint, params=params)
+            response.raise_for_status()
+            data = response.json()
+            if 'error' not in data and data.get('close') is not None:
+                return {
+                    'symbol': symbol,
+                    'close': data.get('close', 'N/A'),
+                    'open': data.get('open', 'N/A'),
+                    'high': data.get('high', 'N/A'),
+                    'low': data.get('low', 'N/A'),
+                    'volume': data.get('volume', 'N/A')
+                }
+            flash(f"No data available for {symbol}.", "error")
+            return None
+        except HTTPError as e:
+            if response.status_code == 429:  # Rate limit
+                sleep(2 ** attempt)  # Exponential backoff
+                continue
+            flash(f"API error for {symbol}: {response.status_code}", "error")
+            logging.error(f"API error: {response.status_code} - {response.text}")
+            return None
+        except requests.RequestException as e:
+            flash(f"Failed to fetch data for {symbol}.", "error")
+            logging.error(f"Request error: {e}")
+            return None
+    flash(f"Rate limit exceeded for {symbol}.", "error")
+    return None
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     conn = get_db_connection()
@@ -36,6 +71,7 @@ def index():
     stocks = []
     stock_data_list = []
     selected_watchlist_id = request.args.get('watchlist_id', type=int)
+    selected_stock_id = request.args.get('stock_id', type=int)
 
     if conn:
         cur = conn.cursor()
@@ -49,34 +85,21 @@ def index():
                 cur.execute('SELECT id, symbol FROM stocks WHERE watchlist_id = %s;', (selected_watchlist_id,))
                 stocks = cur.fetchall()
 
-                # Fetch EOD data for all stocks in the watchlist
-                for stock in stocks:
-                    stock_id, symbol = stock
-                    endpoint = f"{MARKETSTACK_BASE_URL}/tickers/{symbol.lower()}/eod/latest"
-                    params = {"access_key": MARKETSTACK_API_KEY}
-                    try:
-                        response = requests.get(endpoint, params=params)
-                        if response.status_code == 200:
-                            data = response.json()
-                            if 'error' not in data and data.get('close') is not None:
-                                stock_data = {
-                                    'symbol': symbol,
-                                    'close': data.get('close', 'N/A'),
-                                    'open': data.get('open', 'N/A'),
-                                    'high': data.get('high', 'N/A'),
-                                    'low': data.get('low', 'N/A'),
-                                    'volume': data.get('volume', 'N/A')
-                                }
-                                stock_data_list.append(stock_data)
-                                logging.debug(f"Stock data for {symbol}: {stock_data}")
-                            else:
-                                flash(f"No data available for {symbol}.", "error")
-                        else:
-                            flash(f"API error for {symbol}: {response.status_code}", "error")
-                            logging.error(f"API error: {response.status_code} - {response.text}")
-                    except requests.RequestException as e:
-                        flash(f"Failed to fetch data for {symbol}.", "error")
-                        logging.error(f"Request error: {e}")
+                # Fetch EOD data for selected stock or all stocks in watchlist
+                if selected_stock_id:
+                    cur.execute('SELECT symbol FROM stocks WHERE id = %s AND watchlist_id = %s;', (selected_stock_id, selected_watchlist_id))
+                    result = cur.fetchone()
+                    if result:
+                        stock_data = fetch_stock_data_api(result[0])
+                        if stock_data:
+                            stock_data_list.append(stock_data)
+                    else:
+                        flash("Invalid stock ID.", "error")
+                else:
+                    for stock in stocks:
+                        stock_data = fetch_stock_data_api(stock[1])
+                        if stock_data:
+                            stock_data_list.append(stock_data)
         except psycopg2.Error as e:
             flash("Failed to fetch data.", "error")
             logging.error(f"Database error: {e}")
@@ -84,7 +107,7 @@ def index():
             cur.close()
             conn.close()
 
-    return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, selected_watchlist_id=selected_watchlist_id)
+    return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, selected_watchlist_id=selected_watchlist_id, selected_stock_id=selected_stock_id)
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():
@@ -215,6 +238,14 @@ def delete_stock(stock_id):
         conn.close()
 
     return redirect(url_for('index', watchlist_id=watchlist_id))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('error.html', error="Page not found."), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('error.html', error="Internal server error."), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5002)
