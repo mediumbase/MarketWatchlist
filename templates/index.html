@@ -1,21 +1,86 @@
+<!-- File: index.html -->
+<!-- Version: 1.0.8 -->
+<!-- Date: 2025-07-13 -->
+<!-- Time: 14:30 EDT -->
+<!-- Description: Market Siren dashboard interface -->
+<!-- Changes: -->
+<!-- - 1.0.0: Initial version with watchlist management, stock data table, and news modal -->
+<!-- - 1.0.1: Added compact menus, inline watchlist editing, and breaking news -->
+<!-- - 1.0.2: Added market benchmarks, top/worst stocks, and Show All Symbols button -->
+<!-- - 1.0.3: Added thin header with dropdown, moved Show All Symbols to Watchlists, reorganized Row 3 Column 3 into three 30% divs -->
+<!-- - 1.0.4: Moved Market Movers, Benchmarks, and Status to Row 2 Column 3; enhanced layout -->
+<!-- - 1.0.5: Fixed layout to match desired structure; moved All Symbols to mini button; added fallback for rate limit errors -->
+<!-- - 1.0.6: Fixed stock data loading with robust fallback; ensured watchlist stocks display -->
+<!-- - 1.0.7: Added database storage for stock data; prioritized DB/cache over API -->
+<!-- - 1.0.8: Ensured watchlist stocks display with database fallback; fixed empty table issue -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketmachine Dashboard</title>
+    <title>Market Siren Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             background-color: #f4f4f9;
         }
+        .top-header {
+            background-color: #333;
+            color: white;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 40px;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #fff;
+            min-width: 120px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border-radius: 3px;
+            z-index: 1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .dropdown-content a {
+            color: #333;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            font-size: 12px;
+        }
+        .dropdown-content a:hover {
+            background-color: #f2f2f2;
+        }
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             display: grid;
-            grid-template-rows: auto auto 1fr auto;
+            grid-template-rows: auto auto 1fr;
             grid-template-columns: 10% 10% 80%;
             gap: 10px;
         }
@@ -23,49 +88,66 @@
             grid-row: 1;
             grid-column: 1 / -1;
             text-align: center;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .datetime {
-            font-size: 12px;
+        h1 {
             color: #333;
+            margin: 0;
+            font-size: 24px;
         }
-        .market-status {
+        .flash-messages {
+            grid-row: 2;
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+        }
+        .flash-messages li {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
             font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 3px;
-            color: white;
         }
-        .market-status.open {
-            background-color: #4CAF50;
+        .flash-messages .success {
+            background-color: #d4edda;
+            color: #155724;
         }
-        .market-status.closed {
-            background-color: #ff4d4d;
+        .flash-messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
         }
-        .news-alert, .market-benchmarks {
+        .flash-messages .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .widgets {
             grid-row: 2;
             grid-column: 3;
+            display: flex;
+            gap: 10px;
+        }
+        .news-alert, .market-movers, .market-benchmarks, .local-box {
+            width: 30%;
             padding: 8px;
             background-color: #fff;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            width: 50%;
-            display: inline-block;
-            vertical-align: top;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .news-alert {
             border-left: 4px solid #ff4d4d;
         }
-        .news-alert h3, .market-benchmarks h3 {
+        .news-alert h3, .market-movers h3, .market-benchmarks h3, .local-box h3 {
             margin: 0 0 6px;
-            color: #721c24;
             font-size: 14px;
+            color: #333;
         }
-        .news-alert ul, .market-benchmarks ul {
+        .news-alert ul, .market-movers ul, .market-benchmarks ul, .local-box p {
             margin: 0;
             padding: 0 0 0 12px;
             font-size: 10px;
+        }
+        .market-movers ul li .change-up {
+            color: #4CAF50;
+        }
+        .market-movers ul li .change-down {
+            color: #ff4d4d;
         }
         .market-benchmarks ul li .change-up {
             color: #4CAF50;
@@ -73,13 +155,26 @@
         .market-benchmarks ul li .change-down {
             color: #ff4d4d;
         }
+        .local-box .market-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: white;
+            display: inline-block;
+        }
+        .local-box .market-status.open {
+            background-color: #4CAF50;
+        }
+        .local-box .market-status.closed {
+            background-color: #ff4d4d;
+        }
         .watchlists {
             grid-row: 3;
             grid-column: 1;
             padding: 8px;
             background-color: #fff;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .stock-section {
             grid-row: 3;
@@ -87,7 +182,7 @@
             padding: 8px;
             background-color: #fff;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .stock-data-table {
             grid-row: 3;
@@ -95,29 +190,7 @@
             padding: 10px;
             background-color: #fff;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .top-worst-stocks {
-            grid-row: 4;
-            grid-column: 1;
-            padding: 8px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            font-size: 10px;
-        }
-        .top-worst-stocks h3 {
-            font-size: 12px;
-            margin: 0 0 6px;
-        }
-        .top-worst-stocks ul {
-            margin: 0;
-            padding: 0 0 0 12px;
-        }
-        h1 {
-            color: #333;
-            margin: 0;
-            font-size: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h2, h3 {
             color: #333;
@@ -189,6 +262,7 @@
             display: block;
             margin-left: auto;
             margin-right: auto;
+            border-radius: 3px;
         }
         .all-symbols-btn:hover {
             background-color: #45a049;
@@ -231,32 +305,6 @@
         }
         th:hover {
             background-color: #e0e0e0;
-        }
-        .flash-messages {
-            grid-column: 1 / -1;
-            margin-bottom: 10px;
-        }
-        .flash-messages li {
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .flash-messages .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .flash-messages .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .flash-messages .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-        canvas {
-            margin-top: 20px;
-            max-width: 100%;
         }
         .arrow-up {
             color: #4CAF50;
@@ -312,12 +360,16 @@
             .container {
                 grid-template-columns: 1fr;
             }
-            .news-alert, .market-benchmarks, .watchlists, .stock-section, .stock-data-table, .top-worst-stocks {
+            .watchlists, .stock-section, .stock-data-table, .widgets {
                 grid-column: 1;
             }
-            .news-alert, .market-benchmarks {
+            .widgets {
                 grid-row: 2;
+                display: block;
+            }
+            .news-alert, .market-movers, .market-benchmarks, .local-box {
                 width: 100%;
+                margin-bottom: 10px;
             }
             .watchlists {
                 grid-row: 3;
@@ -328,9 +380,6 @@
             .stock-data-table {
                 grid-row: 5;
             }
-            .top-worst-stocks {
-                grid-row: 6;
-            }
             .watchlists, .stock-section {
                 width: 100%;
             }
@@ -338,15 +387,27 @@
     </style>
 </head>
 <body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="logo">Market Siren</div>
+        <div class="dropdown">
+            <button class="dropdown-btn">Menu</button>
+            <div class="dropdown-content">
+                <a href="#">Account</a>
+                <a href="#">Settings</a>
+                <a href="#">Sign In</a>
+                <a href="#">Sign Out</a>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Row 1: Header with Date/Time and Market Status -->
+        <!-- Row 1: Header -->
         <div class="header">
-            <span class="datetime">{{ current_time }}</span>
-            <h1>Marketmachine Dashboard</h1>
-            <span class="market-status {{ market_status|lower }}">{{ market_status }}</span>
+            <h1>Market Siren Dashboard</h1>
         </div>
 
-        <!-- Flash messages -->
+        <!-- Row 2: Flash Messages and Widgets -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -358,27 +419,45 @@
                 {% endif %}
             {% endwith %}
         </div>
-
-        <!-- Row 2, Column 3: Breaking News and Market Benchmarks -->
-        <div class="news-alert">
-            <h3>Breaking News</h3>
-            <ul>
-                {% for news in breaking_news %}
-                    <li>{{ news }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        <div class="market-benchmarks">
-            <h3>Market Benchmarks</h3>
-            <ul>
-                {% for benchmark in benchmarks %}
-                    <li>{{ benchmark.name }}: {{ benchmark.close }} 
-                        <span class="change-{% if benchmark.change >= 0 %}up{% else %}down{% endif %}">
-                            ({{ '+%' if benchmark.change >= 0 else '%' }}{{ '%.2f'|format(benchmark.change) }}%)
-                        </span>
-                    </li>
-                {% endfor %}
-            </ul>
+        <div class="widgets">
+            <div class="news-alert">
+                <h3>Breaking News</h3>
+                <ul>
+                    {% for news in breaking_news %}
+                        <li>{{ news }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="market-movers">
+                <h3>Market Movers</h3>
+                <ul>
+                    <li><strong>Top 3:</strong></li>
+                    {% for stock in top_worst_stocks[:3] %}
+                        <li>{{ stock.symbol }}: <span class="change-up">+{{ '%.2f'|format(stock.change_percent) }}%</span></li>
+                    {% endfor %}
+                    <li><strong>Worst 3:</strong></li>
+                    {% for stock in top_worst_stocks[-3:] %}
+                        <li>{{ stock.symbol }}: <span class="change-down">{{ '%.2f'|format(stock.change_percent) }}%</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="market-benchmarks">
+                <h3>Market Benchmarks</h3>
+                <ul>
+                    {% for benchmark in benchmarks %}
+                        <li>{{ benchmark.name }}: {{ benchmark.close }} 
+                            <span class="change-{% if benchmark.change >= 0 %}up{% else %}down{% endif %}">
+                                ({{ '+%' if benchmark.change >= 0 else '%' }}{{ '%.2f'|format(benchmark.change) }}%)
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="local-box">
+                <h3>Market Status</h3>
+                <p>{{ current_time }}</p>
+                <span class="market-status {{ market_status|lower }}">{{ market_status }}</span>
+            </div>
         </div>
 
         <!-- Row 3, Column 1: Watchlists -->
@@ -407,6 +486,7 @@
                     </li>
                 {% endfor %}
             </ul>
+            <button class="all-symbols-btn" onclick="window.location.href='{{ url_for('index', show_all=1) }}'">All Symbols</button>
         </div>
 
         <!-- Row 3, Column 2: Stock Management -->
@@ -530,11 +610,10 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                    <button class="all-symbols-btn" onclick="window.location.href='{{ url_for('index', show_all=1) }}'">Show All Symbols</button>
                     {% for stock_data in stock_data_list %}
                         <div id="modal-{{ stock_data.symbol }}" class="modal">
                             <div class="modal-content">
-                                <span class="close-btn" onclick="closeModal('modal-{{ stock_data.symbol }}')">&times;</span>
+                                <span class="close-btn" onclick="closeModal('modal-{{ stock_data.symbol }}')">×</span>
                                 <h3>News for {{ stock_data.symbol }}</h3>
                                 <ul>
                                     {% for item in stock_data.news_items %}
@@ -585,7 +664,7 @@
                             input.addEventListener('blur', () => {
                                 hiddenInput.value = input.value;
                             });
-                            hiddenInput.value = input.value;
+                            input.value = nameElement.textContent; // Ensure input starts with current name
                         }
 
                         function openModal(modalId) {
@@ -598,37 +677,11 @@
 
                         // Initial sort by Symbol (ascending)
                         sortTable(0, 'string');
-
-                        // Update datetime every second
-                        setInterval(() => {
-                            const datetimeElement = document.querySelector('.datetime');
-                            const now = new Date();
-                            datetimeElement.textContent = now.toLocaleString('en-US', { 
-                                year: 'numeric', month: 'numeric', day: 'numeric', 
-                                hour: '2-digit', minute: '2-digit', second: '2-digit', 
-                                hour12: false, timeZone: 'America/New_York' 
-                            }) + ' EDT';
-                        }, 1000);
                     </script>
                 {% endif %}
             {% else %}
-                <p>No stock data available. Select a watchlist or stock to view data.</p>
+                <p>No stock data available.</p>
             {% endif %}
-        </div>
-
-        <!-- Row 4, Column 1: Top/Worst Stocks -->
-        <div class="top-worst-stocks">
-            <h3>Market Movers</h3>
-            <ul>
-                <li><strong>Top 3:</strong></li>
-                {% for stock in top_worst_stocks[:3] %}
-                    <li>{{ stock.symbol }}: +{{ '%.2f'|format(stock.change_percent) }}%</li>
-                {% endfor %}
-                <li><strong>Worst 3:</strong></li>
-                {% for stock in top_worst_stocks[-3:] %}
-                    <li>{{ stock.symbol }}: {{ '%.2f'|format(stock.change_percent) }}%</li>
-                {% endfor %}
-            </ul>
         </div>
     </div>
 </body>
