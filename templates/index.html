@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketmachine Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            grid-template-columns: 25% 25% 50%;
+            gap: 15px;
+        }
+        .header {
+            grid-row: 1;
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+        .create-watchlist {
+            grid-row: 2;
+            grid-column: 1;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .watchlists {
+            grid-row: 3;
+            grid-column: 1;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stock-section {
+            grid-row: 3;
+            grid-column: 2;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stock-data-table {
+            grid-row: 3;
+            grid-column: 3;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        input[type="text"] {
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 150px;
+        }
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .add-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .add-btn:hover {
+            background-color: #45a049;
+        }
+        .rename-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .rename-btn:hover {
+            background-color: #0056b3;
+        }
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            padding: 8px;
+            margin: 4px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        .flash-messages {
+            grid-column: 1 / -1;
+            margin-bottom: 10px;
+        }
+        .flash-messages li {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .flash-messages .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .flash-messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .flash-messages .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .create-watchlist, .watchlists, .stock-section, .stock-data-table {
+                grid-column: 1;
+            }
+            .stock-section {
+                grid-row: 4;
+            }
+            .stock-data-table {
+                grid-row: 5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Row 1: Header -->
+        <div class="header">
+            <h1>Marketmachine Dashboard</h1>
+        </div>
+
+        <!-- Flash messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul>
+                        {% for category, message in messages %}
+                            <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Row 2, Column 1: Create Watchlist -->
+        <div class="create-watchlist">
+            <h2>Create Watchlist</h2>
+            <form action="{{ url_for('add_watchlist') }}" method="POST">
+                <input type="text" name="name" placeholder="Watchlist Name" required>
+                <button type="submit" class="add-btn">Add Watchlist</button>
+            </form>
+        </div>
+
+        <!-- Row 3, Column 1: Watchlists -->
+        <div class="watchlists">
+            <h2>Watchlists</h2>
+            <ul>
+                {% for watchlist in watchlists %}
+                    <li>
+                        <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}">{{ watchlist[1] }}</a>
+                        <div>
+                            <form action="{{ url_for('rename_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
+                                <input type="text" name="new_name" placeholder="New Name" required style="width: 100px;">
+                                <button type="submit" class="rename-btn">Rename</button>
+                            </form>
+                            <form action="{{ url_for('delete_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Row 3, Column 2: Stock Management -->
+        <div class="stock-section">
+            {% if selected_watchlist_id %}
+                <h3>Stocks in Watchlist #{{ selected_watchlist_id }}</h3>
+                <form action="{{ url_for('add_stock') }}" method="POST">
+                    <input type="hidden" name="watchlist_id" value="{{ selected_watchlist_id }}">
+                    <input type="text" name="symbol" placeholder="Stock Symbol (e.g., SOFI)" required>
+                    <button type="submit" class="add-btn">Add Stock</button>
+                </form>
+                <ul>
+                    {% for stock in stocks %}
+                        <li>
+                            <span>{{ stock[1] }}</span>
+                            <div>
+                                <form action="{{ url_for('delete_stock', stock_id=stock[0]) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li>No stocks in this watchlist.</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Select a watchlist to view stocks.</p>
+            {% endif %}
+        </div>
+
+        <!-- Row 3, Column 3: Stock Data Table -->
+        <div class="stock-data-table">
+            {% if stock_data_list %}
+                <h3>Stock Data</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Close</th>
+                            <th>Open</th>
+                            <th>High</th>
+                            <th>Low</th>
+                            <th>Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock_data in stock_data_list %}
+                            <tr>
+                                <td>{{ stock_data.symbol }}</td>
+                                <td>${{ stock_data.close }}</td>
+                                <td>${{ stock_data.open }}</td>
+                                <td>${{ stock_data.high }}</td>
+                                <td>${{ stock_data.low }}</td>
+                                <td>{{ stock_data.volume }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No stock data available. Select a watchlist to view data.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

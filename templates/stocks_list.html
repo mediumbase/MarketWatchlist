@@ -1,0 +1,90 @@
+<!-- stock_list.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stocks in Watchlist #{{ watchlist_id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 30px;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background-color: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            width: 300px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .delete-button:hover {
+            background-color: #cc0000;
+        }
+        .fetch-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .fetch-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Stocks in Watchlist #{{ watchlist_id }}</h1>
+
+    <ul>
+        {% if stocks %}
+            {% for stock in stocks %}
+                <li>
+                    <span>{{ stock[1] }}</span> <!-- stock[1] is the symbol -->
+                    <div>
+                        <form action="{{ url_for('fetch_stock_data', stock_id=stock[0]) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="fetch-button">Fetch Data</button>
+                        </form>
+                        <form action="{{ url_for('delete_stock', stock_id=stock[0]) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="delete-button">Delete</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        {% else %}
+            <li>No stocks found in this watchlist.</li>
+        {% endif %}
+    </ul>
+
+    <form action="{{ url_for('add_stock', watchlist_id=watchlist_id) }}" method="POST">
+        <label for="symbol">Stock Symbol:</label>
+        <input type="text" name="symbol" required>
+        <button type="submit">Add Stock</button>
+    </form>
+</body>
+</html>
