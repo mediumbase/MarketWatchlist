@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketmachine Dashboard</title>
+    <title>Market Siren</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,8 +16,8 @@
             padding: 20px;
             display: grid;
             grid-template-rows: auto auto 1fr;
-            grid-template-columns: 25% 25% 50%;
-            gap: 15px;
+            grid-template-columns: 10% 10% 80%;
+            gap: 10px;
         }
         .header {
             grid-row: 1;
@@ -27,15 +27,34 @@
         .create-watchlist {
             grid-row: 2;
             grid-column: 1;
-            padding: 10px;
+            padding: 8px;
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        .news-alert {
+            grid-row: 2;
+            grid-column: 3;
+            padding: 8px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #ff4d4d;
+        }
+        .news-alert h3 {
+            margin: 0 0 6px;
+            color: #721c24;
+            font-size: 14px;
+        }
+        .news-alert ul {
+            margin: 0;
+            padding: 0 0 0 12px;
+            font-size: 10px;
+        }
         .watchlists {
             grid-row: 3;
             grid-column: 1;
-            padding: 10px;
+            padding: 8px;
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -43,7 +62,7 @@
         .stock-section {
             grid-row: 3;
             grid-column: 2;
-            padding: 10px;
+            padding: 8px;
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -56,27 +75,34 @@
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        h1, h2, h3 {
+        h1 {
             color: #333;
             margin-top: 0;
+            font-size: 24px;
+        }
+        h2, h3 {
+            color: #333;
+            margin-top: 0;
+            font-size: 14px;
         }
         form {
             display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
+            margin-bottom: 6px;
         }
         input[type="text"] {
-            padding: 6px;
+            padding: 4px;
             border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 150px;
+            border-radius: 3px;
+            width: 100px;
+            font-size: 12px;
         }
         button {
-            padding: 6px 12px;
+            padding: 4px 8px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
         }
         .add-btn {
             background-color: #4CAF50;
@@ -85,39 +111,50 @@
         .add-btn:hover {
             background-color: #45a049;
         }
+        .rename-btn, .delete-btn {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            border-radius: 3px;
+            background-size: 12px;
+            background-repeat: no-repeat;
+            background-position: center;
+            cursor: pointer;
+        }
         .rename-btn {
             background-color: #007bff;
-            color: white;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>');
         }
         .rename-btn:hover {
             background-color: #0056b3;
         }
         .delete-btn {
             background-color: #ff4d4d;
-            color: white;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>');
         }
         .delete-btn:hover {
             background-color: #cc0000;
-        }
-        .fetch-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .fetch-btn:hover {
-            background-color: #45a049;
         }
         ul {
             list-style: none;
             padding: 0;
         }
         li {
-            padding: 8px;
-            margin: 4px 0;
+            padding: 6px;
+            margin: 3px 0;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
+            font-size: 12px;
+        }
+        .watchlist-name {
+            cursor: pointer;
+        }
+        .watchlist-name-input {
+            display: none;
+            width: 80px;
+            font-size: 12px;
         }
         table {
             width: 100%;
@@ -145,6 +182,7 @@
             padding: 8px;
             margin: 5px 0;
             border-radius: 4px;
+            font-size: 12px;
         }
         .flash-messages .success {
             background-color: #d4edda;
@@ -172,18 +210,35 @@
             font-size: 12px;
             margin-left: 4px;
         }
+        .mini-news {
+            font-size: 11px;
+            color: #555;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
             }
-            .create-watchlist, .watchlists, .stock-section, .stock-data-table {
+            .create-watchlist, .news-alert, .watchlists, .stock-section, .stock-data-table {
                 grid-column: 1;
             }
-            .stock-section {
+            .news-alert {
+                grid-row: 3;
+            }
+            .watchlists {
                 grid-row: 4;
             }
-            .stock-data-table {
+            .stock-section {
                 grid-row: 5;
+            }
+            .stock-data-table {
+                grid-row: 6;
+            }
+            .watchlists, .stock-section {
+                width: 100%;
             }
         }
     </style>
@@ -192,7 +247,7 @@
     <div class="container">
         <!-- Row 1: Header -->
         <div class="header">
-            <h1>Marketmachine Dashboard</h1>
+            <h1>Market Siren</h1>
         </div>
 
         <!-- Flash messages -->
@@ -217,20 +272,31 @@
             </form>
         </div>
 
+        <!-- Row 2, Column 3: Breaking News Alert -->
+        <div class="news-alert">
+            <h3>Breaking News</h3>
+            <ul>
+                {% for news in breaking_news %}
+                    <li>{{ news }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
         <!-- Row 3, Column 1: Watchlists -->
         <div class="watchlists">
             <h2>Watchlists</h2>
             <ul>
                 {% for watchlist in watchlists %}
                     <li>
-                        <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}">{{ watchlist[1] }}</a>
+                        <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}" class="watchlist-name">{{ watchlist[1] }}</a>
+                        <input type="text" class="watchlist-name-input" id="input-{{ watchlist[0] }}" name="new_name" value="{{ watchlist[1] }}" style="display: none;">
                         <div>
                             <form action="{{ url_for('rename_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
-                                <input type="text" name="new_name" placeholder="New Name" required style="width: 100px;">
-                                <button type="submit" class="rename-btn">Rename</button>
+                                <input type="hidden" name="new_name" value="{{ watchlist[1] }}">
+                                <button type="button" class="rename-btn" title="Rename Watchlist" onclick="toggleEdit(this, 'input-{{ watchlist[0] }}', this.form.querySelector('.watchlist-name'));"></button>
                             </form>
                             <form action="{{ url_for('delete_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
-                                <button type="submit" class="delete-btn">Delete</button>
+                                <button type="submit" class="delete-btn" title="Delete Watchlist"></button>
                             </form>
                         </div>
                     </li>
@@ -252,11 +318,8 @@
                         <li>
                             <span>{{ stock[1] }}</span>
                             <div>
-                                <form action="{{ url_for('index', watchlist_id=selected_watchlist_id, stock_id=stock[0]) }}" method="GET" style="display: inline;">
-                                    <button type="submit" class="fetch-btn">View Data</button>
-                                </form>
                                 <form action="{{ url_for('delete_stock', stock_id=stock[0]) }}" method="POST" style="display: inline;">
-                                    <button type="submit" class="delete-btn">Delete</button>
+                                    <button type="submit" class="delete-btn" title="Delete Stock"></button>
                                 </form>
                             </div>
                         </li>
@@ -294,6 +357,8 @@
                             <p><strong>High Price:</strong> ${{ stock_data.high }}</p>
                             <p><strong>Low Price:</strong> ${{ stock_data.low }}</p>
                             <p><strong>Volume:</strong> {{ stock_data.volume }}</p>
+                            <p><strong>Trend:</strong> {{ stock_data.trend|default('N/A') }}</p>
+                            <p><strong>MACD Signal:</strong> {{ stock_data.macd_signal|default('N/A') }}</p>
                             <canvas id="priceChart-{{ stock_data.symbol }}" width="400" height="200"></canvas>
                         </div>
                     {% endfor %}
@@ -325,6 +390,9 @@
                                 <th onclick="sortTable(3, 'number')">High</th>
                                 <th onclick="sortTable(4, 'number')">Low</th>
                                 <th onclick="sortTable(5, 'number')">Volume</th>
+                                <th onclick="sortTable(6, 'string')">Trend</th>
+                                <th onclick="sortTable(7, 'string')">MACD Signal</th>
+                                <th onclick="sortTable(8, 'string')">Mini News</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -350,6 +418,9 @@
                                     <td>{{ stock_data.high }}</td>
                                     <td>{{ stock_data.low }}</td>
                                     <td>{{ stock_data.volume }}</td>
+                                    <td>{{ stock_data.trend|default('N/A') }}</td>
+                                    <td>{{ stock_data.macd_signal|default('N/A') }}</td>
+                                    <td class="mini-news">{{ stock_data.mini_news|default('No recent news') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -382,6 +453,21 @@
 
                             table.dataset.sortColumn = columnIndex;
                             table.dataset.sortOrder = isAscending ? "asc" : "desc";
+                        }
+
+                        function toggleEdit(button, inputId, nameElement) {
+                            const input = document.getElementById(inputId);
+                            const form = button.closest('form');
+                            const hiddenInput = form.querySelector('input[name="new_name"]');
+                            nameElement.style.display = nameElement.style.display === 'none' ? 'inline' : 'none';
+                            input.style.display = input.style.display === 'none' ? 'inline' : 'none';
+                            if (input.style.display === 'inline') {
+                                input.focus();
+                            }
+                            input.addEventListener('blur', () => {
+                                hiddenInput.value = input.value;
+                            });
+                            hiddenInput.value = input.value;
                         }
 
                         // Initial sort by Symbol (ascending)

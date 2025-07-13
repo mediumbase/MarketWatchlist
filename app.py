@@ -21,6 +21,13 @@ logging.basicConfig(level=logging.DEBUG)
 MARKETSTACK_API_KEY = os.getenv("MARKETSTACK_API_KEY")
 MARKETSTACK_BASE_URL = "http://api.marketstack.com/v1"
 
+# Mock breaking news (replace with real news API in production)
+MOCK_BREAKING_NEWS = [
+    "Levi Strauss (LEVI) rises 7% after beating Q2 earnings expectations",
+    "Nvidia (NVDA) hits $4T market cap, first in history",
+    "Tesla (TSLA) down 7% after Musk's political party announcement"
+]
+
 # Database connection
 def get_db_connection():
     try:
@@ -40,13 +47,25 @@ def fetch_stock_data_api(symbol):
             response.raise_for_status()
             data = response.json()
             if 'error' not in data and data.get('close') is not None:
+                # Mock trend and MACD (replace with Alpha Vantage API in production)
+                trend = "Up" if data.get('close', 0) > data.get('open', 0) else "Down" if data.get('close', 0) < data.get('open', 0) else "Neutral"
+                macd_signal = "Buy" if data.get('close', 0) > data.get('open', 0) else "Sell" if data.get('close', 0) < data.get('open', 0) else "Neutral"
+                # Mock mini news (replace with news API like Stock Titan)
+                mini_news = {
+                    "SOFI": "Q2 earnings beat expectations",
+                    "NVDA": "New AI chip launch announced",
+                    "TSLA": "Regulatory scrutiny on self-driving tech"
+                }.get(symbol, "No recent news")
                 return {
                     'symbol': symbol,
                     'close': data.get('close', 'N/A'),
                     'open': data.get('open', 'N/A'),
                     'high': data.get('high', 'N/A'),
                     'low': data.get('low', 'N/A'),
-                    'volume': data.get('volume', 'N/A')
+                    'volume': data.get('volume', 'N/A'),
+                    'trend': trend,
+                    'macd_signal': macd_signal,
+                    'mini_news': mini_news
                 }
             flash(f"No data available for {symbol}.", "error")
             return None
@@ -107,7 +126,9 @@ def index():
             cur.close()
             conn.close()
 
-    return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, selected_watchlist_id=selected_watchlist_id, selected_stock_id=selected_stock_id)
+    return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, 
+                           selected_watchlist_id=selected_watchlist_id, selected_stock_id=selected_stock_id, 
+                           breaking_news=MOCK_BREAKING_NEWS)
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():
