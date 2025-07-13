@@ -91,6 +91,7 @@ def index():
     stock_data_list = []
     selected_watchlist_id = request.args.get('watchlist_id', type=int)
     selected_stock_id = request.args.get('stock_id', type=int)
+    selected_watchlist_name = None
 
     if conn:
         cur = conn.cursor()
@@ -98,6 +99,12 @@ def index():
             # Fetch all watchlists
             cur.execute('SELECT id, name FROM watchlists;')
             watchlists = cur.fetchall()
+
+            # Fetch selected watchlist name
+            if selected_watchlist_id:
+                cur.execute('SELECT name FROM watchlists WHERE id = %s;', (selected_watchlist_id,))
+                result = cur.fetchone()
+                selected_watchlist_name = result[0] if result else None
 
             # Fetch stocks for selected watchlist
             if selected_watchlist_id:
@@ -128,7 +135,7 @@ def index():
 
     return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, 
                            selected_watchlist_id=selected_watchlist_id, selected_stock_id=selected_stock_id, 
-                           breaking_news=MOCK_BREAKING_NEWS)
+                           breaking_news=MOCK_BREAKING_NEWS, selected_watchlist_name=selected_watchlist_name)
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():

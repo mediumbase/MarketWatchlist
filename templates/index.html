@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Siren</title>
+    <title>Marketmachine Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,14 +23,6 @@
             grid-row: 1;
             grid-column: 1 / -1;
             text-align: center;
-        }
-        .create-watchlist {
-            grid-row: 2;
-            grid-column: 1;
-            padding: 8px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .news-alert {
             grid-row: 2;
@@ -94,8 +86,14 @@
             padding: 4px;
             border: 1px solid #ccc;
             border-radius: 3px;
-            width: 100px;
             font-size: 12px;
+        }
+        .create-watchlist input[type="text"] {
+            width: 80px;
+        }
+        .create-watchlist button {
+            padding: 3px 6px;
+            font-size: 10px;
         }
         button {
             padding: 4px 8px;
@@ -222,20 +220,20 @@
             .container {
                 grid-template-columns: 1fr;
             }
-            .create-watchlist, .news-alert, .watchlists, .stock-section, .stock-data-table {
+            .news-alert, .watchlists, .stock-section, .stock-data-table {
                 grid-column: 1;
             }
             .news-alert {
-                grid-row: 3;
+                grid-row: 2;
             }
             .watchlists {
-                grid-row: 4;
+                grid-row: 3;
             }
             .stock-section {
-                grid-row: 5;
+                grid-row: 4;
             }
             .stock-data-table {
-                grid-row: 6;
+                grid-row: 5;
             }
             .watchlists, .stock-section {
                 width: 100%;
@@ -247,7 +245,7 @@
     <div class="container">
         <!-- Row 1: Header -->
         <div class="header">
-            <h1>Market Siren</h1>
+            <h1>Marketmachine Dashboard</h1>
         </div>
 
         <!-- Flash messages -->
@@ -263,15 +261,6 @@
             {% endwith %}
         </div>
 
-        <!-- Row 2, Column 1: Create Watchlist -->
-        <div class="create-watchlist">
-            <h2>Create Watchlist</h2>
-            <form action="{{ url_for('add_watchlist') }}" method="POST">
-                <input type="text" name="name" placeholder="Watchlist Name" required>
-                <button type="submit" class="add-btn">Add Watchlist</button>
-            </form>
-        </div>
-
         <!-- Row 2, Column 3: Breaking News Alert -->
         <div class="news-alert">
             <h3>Breaking News</h3>
@@ -285,6 +274,12 @@
         <!-- Row 3, Column 1: Watchlists -->
         <div class="watchlists">
             <h2>Watchlists</h2>
+            <div class="create-watchlist">
+                <form action="{{ url_for('add_watchlist') }}" method="POST">
+                    <input type="text" name="name" placeholder="New list" required>
+                    <button type="submit" class="add-btn">Add</button>
+                </form>
+            </div>
             <ul>
                 {% for watchlist in watchlists %}
                     <li>
@@ -306,8 +301,8 @@
 
         <!-- Row 3, Column 2: Stock Management -->
         <div class="stock-section">
-            {% if selected_watchlist_id %}
-                <h3>Stocks in Watchlist #{{ selected_watchlist_id }}</h3>
+            {% if selected_watchlist_id and selected_watchlist_name %}
+                <h3>{{ selected_watchlist_name }}</h3>
                 <form action="{{ url_for('add_stock') }}" method="POST">
                     <input type="hidden" name="watchlist_id" value="{{ selected_watchlist_id }}">
                     <input type="text" name="symbol" placeholder="Stock Symbol (e.g., SOFI)" required>
