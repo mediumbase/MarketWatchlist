@@ -1,18 +1,13 @@
 <!-- File: index.html -->
-<!-- Version: 1.0.8 -->
+<!-- Version: 2.1.1 -->
 <!-- Date: 2025-07-13 -->
-<!-- Time: 14:30 EDT -->
-<!-- Description: Market Siren dashboard interface -->
+<!-- Time: 15:45 EDT -->
+<!-- Description: Market Siren dashboard interface with trillion-dollar scale optimizations -->
 <!-- Changes: -->
-<!-- - 1.0.0: Initial version with watchlist management, stock data table, and news modal -->
-<!-- - 1.0.1: Added compact menus, inline watchlist editing, and breaking news -->
-<!-- - 1.0.2: Added market benchmarks, top/worst stocks, and Show All Symbols button -->
-<!-- - 1.0.3: Added thin header with dropdown, moved Show All Symbols to Watchlists, reorganized Row 3 Column 3 into three 30% divs -->
-<!-- - 1.0.4: Moved Market Movers, Benchmarks, and Status to Row 2 Column 3; enhanced layout -->
-<!-- - 1.0.5: Fixed layout to match desired structure; moved All Symbols to mini button; added fallback for rate limit errors -->
-<!-- - 1.0.6: Fixed stock data loading with robust fallback; ensured watchlist stocks display -->
-<!-- - 1.0.7: Added database storage for stock data; prioritized DB/cache over API -->
-<!-- - 1.0.8: Ensured watchlist stocks display with database fallback; fixed empty table issue -->
+<!-- - 1.0.0 to 1.0.4: Initial versions with watchlist management, stock data, and UI enhancements -->
+<!-- - 2.0.0: Modernized UI, optimized for scale with PostgreSQL, added indexes -->
+<!-- - 2.1.0: Integrated Finnhub and NewsAPI, improved API fallback -->
+<!-- - 2.1.1: Fixed TypeError for news_items, handled invalid volume input -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -22,22 +17,23 @@
     <title>Market Siren Dashboard</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             margin: 0;
-            background-color: #f4f4f9;
+            background-color: #f4f7fb;
+            color: #333;
         }
         .top-header {
-            background-color: #333;
+            background-color: #1a2a44;
             color: white;
-            padding: 8px 20px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .logo {
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 20px;
+            font-weight: 600;
         }
         .dropdown {
             position: relative;
@@ -46,20 +42,24 @@
         .dropdown-btn {
             background-color: #4CAF50;
             color: white;
-            padding: 6px 12px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 3px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .dropdown-btn:hover {
+            background-color: #45a049;
         }
         .dropdown-content {
             display: none;
             position: absolute;
             right: 0;
             background-color: #fff;
-            min-width: 120px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border-radius: 3px;
+            min-width: 160px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
             z-index: 1;
         }
         .dropdown:hover .dropdown-content {
@@ -67,32 +67,34 @@
         }
         .dropdown-content a {
             color: #333;
-            padding: 8px 12px;
+            padding: 10px 16px;
             text-decoration: none;
             display: block;
-            font-size: 12px;
+            font-size: 14px;
         }
         .dropdown-content a:hover {
             background-color: #f2f2f2;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
             display: grid;
             grid-template-rows: auto auto 1fr;
-            grid-template-columns: 10% 10% 80%;
-            gap: 10px;
+            grid-template-columns: 15% 15% 70%;
+            gap: 20px;
         }
         .header {
             grid-row: 1;
             grid-column: 1 / -1;
             text-align: center;
+            padding: 20px 0;
         }
         h1 {
-            color: #333;
+            color: #1a2a44;
             margin: 0;
-            font-size: 24px;
+            font-size: 28px;
+            font-weight: 600;
         }
         .flash-messages {
             grid-row: 2;
@@ -100,10 +102,11 @@
             margin-bottom: 10px;
         }
         .flash-messages li {
-            padding: 8px;
+            padding: 10px;
             margin: 5px 0;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 14px;
+            list-style: none;
         }
         .flash-messages .success {
             background-color: #d4edda;
@@ -121,33 +124,39 @@
             grid-row: 2;
             grid-column: 3;
             display: flex;
-            gap: 10px;
+            gap: 15px;
         }
         .news-alert, .market-movers, .market-benchmarks, .local-box {
             width: 30%;
-            padding: 8px;
+            padding: 15px;
             background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .news-alert:hover, .market-movers:hover, .market-benchmarks:hover, .local-box:hover {
+            transform: translateY(-2px);
         }
         .news-alert {
             border-left: 4px solid #ff4d4d;
         }
         .news-alert h3, .market-movers h3, .market-benchmarks h3, .local-box h3 {
-            margin: 0 0 6px;
-            font-size: 14px;
-            color: #333;
+            margin: 0 0 10px;
+            font-size: 16px;
+            color: #1a2a44;
         }
         .news-alert ul, .market-movers ul, .market-benchmarks ul, .local-box p {
             margin: 0;
-            padding: 0 0 0 12px;
-            font-size: 10px;
+            padding: 0 0 0 15px;
+            font-size: 12px;
         }
         .market-movers ul li .change-up {
             color: #4CAF50;
+            font-weight: 600;
         }
         .market-movers ul li .change-down {
             color: #ff4d4d;
+            font-weight: 600;
         }
         .market-benchmarks ul li .change-up {
             color: #4CAF50;
@@ -156,9 +165,9 @@
             color: #ff4d4d;
         }
         .local-box .market-status {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 3px;
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 4px;
             color: white;
             display: inline-block;
         }
@@ -168,59 +177,52 @@
         .local-box .market-status.closed {
             background-color: #ff4d4d;
         }
+        .watchlists, .stock-section, .stock-data-table {
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
         .watchlists {
             grid-row: 3;
             grid-column: 1;
-            padding: 8px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .stock-section {
             grid-row: 3;
             grid-column: 2;
-            padding: 8px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .stock-data-table {
             grid-row: 3;
             grid-column: 3;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h2, h3 {
-            color: #333;
-            margin-top: 0;
-            font-size: 14px;
+            color: #1a2a44;
+            margin: 0 0 10px;
+            font-size: 16px;
+            font-weight: 600;
         }
         form {
             display: flex;
-            gap: 6px;
-            margin-bottom: 6px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
         input[type="text"] {
-            padding: 4px;
+            padding: 8px;
             border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            flex: 1;
         }
         .create-watchlist input[type="text"] {
-            width: 80px;
-        }
-        .create-watchlist button {
-            padding: 3px 6px;
-            font-size: 10px;
+            width: 100px;
         }
         button {
-            padding: 4px 8px;
+            padding: 8px 16px;
             border: none;
-            border-radius: 3px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+            transition: background-color 0.3s;
         }
         .add-btn {
             background-color: #4CAF50;
@@ -229,12 +231,25 @@
         .add-btn:hover {
             background-color: #45a049;
         }
+        .all-symbols-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-top: 10px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .all-symbols-btn:hover {
+            background-color: #0056b3;
+        }
         .rename-btn, .delete-btn {
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             padding: 0;
-            border-radius: 3px;
-            background-size: 12px;
+            border-radius: 4px;
+            background-size: 14px;
             background-repeat: no-repeat;
             background-position: center;
             cursor: pointer;
@@ -253,40 +268,32 @@
         .delete-btn:hover {
             background-color: #cc0000;
         }
-        .all-symbols-btn {
-            padding: 3px 6px;
-            font-size: 10px;
-            background-color: #4CAF50;
-            color: white;
-            margin-top: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            border-radius: 3px;
-        }
-        .all-symbols-btn:hover {
-            background-color: #45a049;
-        }
         ul {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
         li {
-            padding: 6px;
-            margin: 3px 0;
+            padding: 8px;
+            margin: 5px 0;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            font-size: 14px;
         }
         .watchlist-name {
             cursor: pointer;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .watchlist-name:hover {
+            text-decoration: underline;
         }
         .watchlist-name-input {
             display: none;
-            width: 80px;
-            font-size: 12px;
+            width: 100px;
+            font-size: 14px;
         }
         table {
             width: 100%;
@@ -294,13 +301,13 @@
             font-size: 14px;
         }
         th, td {
-            padding: 8px;
+            padding: 10px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
         th {
             background-color: #f2f2f2;
-            color: #333;
+            color: #1a2a44;
             cursor: pointer;
         }
         th:hover {
@@ -309,17 +316,17 @@
         .arrow-up {
             color: #4CAF50;
             font-size: 12px;
-            margin-left: 4px;
+            margin-left: 5px;
         }
         .arrow-down {
             color: #ff4d4d;
             font-size: 12px;
-            margin-left: 4px;
+            margin-left: 5px;
         }
         .mini-news {
-            font-size: 11px;
+            font-size: 12px;
             color: #555;
-            max-width: 150px;
+            max-width: 200px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -332,29 +339,32 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
         .modal-content {
             background-color: #fff;
-            margin: 15% auto;
+            margin: 10% auto;
             padding: 20px;
-            border-radius: 5px;
-            width: 50%;
-            max-height: 60%;
+            border-radius: 8px;
+            width: 60%;
+            max-height: 70%;
             overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         .modal-content h3 {
-            margin-top: 0;
+            margin: 0 0 10px;
+            font-size: 18px;
         }
         .modal-content ul {
-            padding-left: 15px;
-            font-size: 12px;
+            padding-left: 20px;
+            font-size: 14px;
         }
         .close-btn {
             float: right;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
+            color: #333;
         }
         @media (max-width: 768px) {
             .container {
@@ -369,7 +379,7 @@
             }
             .news-alert, .market-movers, .market-benchmarks, .local-box {
                 width: 100%;
-                margin-bottom: 10px;
+                margin-bottom: 15px;
             }
             .watchlists {
                 grid-row: 3;
@@ -379,9 +389,6 @@
             }
             .stock-data-table {
                 grid-row: 5;
-            }
-            .watchlists, .stock-section {
-                width: 100%;
             }
         }
     </style>
@@ -470,6 +477,9 @@
                 </form>
             </div>
             <ul>
+                <li>
+                    <a href="{{ url_for('index', show_all=1) }}" class="watchlist-name">All Symbols</a>
+                </li>
                 {% for watchlist in watchlists %}
                     <li>
                         <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}" class="watchlist-name">{{ watchlist[1] }}</a>
@@ -486,7 +496,6 @@
                     </li>
                 {% endfor %}
             </ul>
-            <button class="all-symbols-btn" onclick="window.location.href='{{ url_for('index', show_all=1) }}'">All Symbols</button>
         </div>
 
         <!-- Row 3, Column 2: Stock Management -->
@@ -664,7 +673,7 @@
                             input.addEventListener('blur', () => {
                                 hiddenInput.value = input.value;
                             });
-                            input.value = nameElement.textContent; // Ensure input starts with current name
+                            hiddenInput.value = input.value;
                         }
 
                         function openModal(modalId) {
@@ -680,7 +689,7 @@
                     </script>
                 {% endif %}
             {% else %}
-                <p>No stock data available.</p>
+                <p>No stock data available. Select a watchlist or stock to view data.</p>
             {% endif %}
         </div>
     </div>
