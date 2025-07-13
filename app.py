@@ -6,6 +6,7 @@ import logging
 import requests
 from time import sleep
 from requests.exceptions import HTTPError
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +29,32 @@ MOCK_BREAKING_NEWS = [
     "Tesla (TSLA) down 7% after Musk's political party announcement"
 ]
 
+# Mock news items for modal (replace with API like Alpha Vantage or NewsAPI)
+MOCK_NEWS_ITEMS = {
+    "SOFI": [
+        {"date": "2025-07-13 09:00 EDT", "text": "Q2 earnings beat expectations"},
+        {"date": "2025-07-12 15:30 EDT", "text": "Announces new lending platform"},
+        {"date": "2025-07-11 10:00 EDT", "text": "Partnership with fintech startup"}
+    ],
+    "NVDA": [
+        {"date": "2025-07-13 08:00 EDT", "text": "New AI chip launch announced"},
+        {"date": "2025-07-12 12:00 EDT", "text": "Hits $4T market cap"},
+        {"date": "2025-07-11 14:00 EDT", "text": "Expands AI research lab"}
+    ],
+    "TSLA": [
+        {"date": "2025-07-13 07:00 EDT", "text": "Regulatory scrutiny on self-driving tech"},
+        {"date": "2025-07-12 11:00 EDT", "text": "Musk announces new factory"},
+        {"date": "2025-07-11 09:00 EDT", "text": "Q2 delivery numbers released"}
+    ]
+}
+
+# Mock market benchmarks (replace with Marketstack API)
+MOCK_BENCHMARKS = [
+    {"symbol": "^GSPC", "name": "S&P 500", "close": 5600.12, "change": 0.45},
+    {"symbol": "^DJI", "name": "Dow Jones", "close": 40000.90, "change": -0.23},
+    {"symbol": "^IXIC", "name": "Nasdaq", "close": 18300.45, "change": 0.67}
+]
+
 # Database connection
 def get_db_connection():
     try:
@@ -47,15 +74,16 @@ def fetch_stock_data_api(symbol):
             response.raise_for_status()
             data = response.json()
             if 'error' not in data and data.get('close') is not None:
-                # Mock trend and MACD (replace with Alpha Vantage API in production)
+                # Mock trend and MACD (replace with Alpha Vantage API)
                 trend = "Up" if data.get('close', 0) > data.get('open', 0) else "Down" if data.get('close', 0) < data.get('open', 0) else "Neutral"
                 macd_signal = "Buy" if data.get('close', 0) > data.get('open', 0) else "Sell" if data.get('close', 0) < data.get('open', 0) else "Neutral"
-                # Mock mini news (replace with news API like Stock Titan)
+                # Mock mini news and news items
                 mini_news = {
                     "SOFI": "Q2 earnings beat expectations",
                     "NVDA": "New AI chip launch announced",
                     "TSLA": "Regulatory scrutiny on self-driving tech"
                 }.get(symbol, "No recent news")
+                news_items = MOCK_NEWS_ITEMS.get(symbol, [])
                 return {
                     'symbol': symbol,
                     'close': data.get('close', 'N/A'),
@@ -65,7 +93,9 @@ def fetch_stock_data_api(symbol):
                     'volume': data.get('volume', 'N/A'),
                     'trend': trend,
                     'macd_signal': macd_signal,
-                    'mini_news': mini_news
+                    'mini_news': mini_news,
+                    'news_items': news_items,
+                    'change_percent': ((data.get('close', 0) - data.get('open', 0)) / data.get('open', 0) * 100) if data.get('open', 0) != 0 else 0
                 }
             flash(f"No data available for {symbol}.", "error")
             return None
@@ -83,6 +113,14 @@ def fetch_stock_data_api(symbol):
     flash(f"Rate limit exceeded for {symbol}.", "error")
     return None
 
+def get_market_status():
+    now = datetime.now()
+    # NYSE/Nasdaq hours: 9:30 AM–4:00 PM EDT, Mon–Fri
+    is_weekday = now.weekday() < 5
+    market_open = datetime.strptime("09:30", "%H:%M").time()
+    market_close = datetime.strptime("16:00", "%H:%M").time()
+    return "Open" if is_weekday and market_open <= now.time() <= market_close else "Closed"
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     conn = get_db_connection()
@@ -91,7 +129,9 @@ def index():
     stock_data_list = []
     selected_watchlist_id = request.args.get('watchlist_id', type=int)
     selected_stock_id = request.args.get('stock_id', type=int)
+    show_all_symbols = request.args.get('show_all', type=int) == 1
     selected_watchlist_name = None
+    top_worst_stocks = []
 
     if conn:
         cur = conn.cursor()
@@ -106,26 +146,35 @@ def index():
                 result = cur.fetchone()
                 selected_watchlist_name = result[0] if result else None
 
-            # Fetch stocks for selected watchlist
-            if selected_watchlist_id:
+            # Fetch stocks
+            if show_all_symbols:
+                cur.execute('SELECT id, symbol FROM stocks;')
+                stocks = cur.fetchall()
+            elif selected_watchlist_id:
                 cur.execute('SELECT id, symbol FROM stocks WHERE watchlist_id = %s;', (selected_watchlist_id,))
                 stocks = cur.fetchall()
 
-                # Fetch EOD data for selected stock or all stocks in watchlist
-                if selected_stock_id:
-                    cur.execute('SELECT symbol FROM stocks WHERE id = %s AND watchlist_id = %s;', (selected_stock_id, selected_watchlist_id))
-                    result = cur.fetchone()
-                    if result:
-                        stock_data = fetch_stock_data_api(result[0])
-                        if stock_data:
-                            stock_data_list.append(stock_data)
-                    else:
-                        flash("Invalid stock ID.", "error")
+            # Fetch EOD data for selected stock or all stocks
+            if selected_stock_id:
+                cur.execute('SELECT symbol FROM stocks WHERE id = %s AND watchlist_id = %s;', (selected_stock_id, selected_watchlist_id))
+                result = cur.fetchone()
+                if result:
+                    stock_data = fetch_stock_data_api(result[0])
+                    if stock_data:
+                        stock_data_list.append(stock_data)
                 else:
-                    for stock in stocks:
-                        stock_data = fetch_stock_data_api(stock[1])
-                        if stock_data:
-                            stock_data_list.append(stock_data)
+                    flash("Invalid stock ID.", "error")
+            else:
+                all_stocks_data = []
+                for stock in stocks:
+                    stock_data = fetch_stock_data_api(stock[1])
+                    if stock_data:
+                        all_stocks_data.append(stock_data)
+                # Sort for top/worst stocks
+                all_stocks_data.sort(key=lambda x: x.get('change_percent', 0), reverse=True)
+                top_worst_stocks = all_stocks_data[:3] + all_stocks_data[-3:] if len(all_stocks_data) >= 3 else all_stocks_data
+                stock_data_list = all_stocks_data if show_all_symbols or selected_watchlist_id else []
+
         except psycopg2.Error as e:
             flash("Failed to fetch data.", "error")
             logging.error(f"Database error: {e}")
@@ -135,7 +184,10 @@ def index():
 
     return render_template('index.html', watchlists=watchlists, stocks=stocks, stock_data_list=stock_data_list, 
                            selected_watchlist_id=selected_watchlist_id, selected_stock_id=selected_stock_id, 
-                           breaking_news=MOCK_BREAKING_NEWS, selected_watchlist_name=selected_watchlist_name)
+                           breaking_news=MOCK_BREAKING_NEWS, selected_watchlist_name=selected_watchlist_name,
+                           benchmarks=MOCK_BENCHMARKS, top_worst_stocks=top_worst_stocks,
+                           current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S EDT"),
+                           market_status=get_market_status())
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():

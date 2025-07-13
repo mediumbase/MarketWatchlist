@@ -15,7 +15,7 @@
             margin: 0 auto;
             padding: 20px;
             display: grid;
-            grid-template-rows: auto auto 1fr;
+            grid-template-rows: auto auto 1fr auto;
             grid-template-columns: 10% 10% 80%;
             gap: 10px;
         }
@@ -23,25 +23,55 @@
             grid-row: 1;
             grid-column: 1 / -1;
             text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .news-alert {
+        .datetime {
+            font-size: 12px;
+            color: #333;
+        }
+        .market-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        .market-status.open {
+            background-color: #4CAF50;
+        }
+        .market-status.closed {
+            background-color: #ff4d4d;
+        }
+        .news-alert, .market-benchmarks {
             grid-row: 2;
             grid-column: 3;
             padding: 8px;
             background-color: #fff;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 50%;
+            display: inline-block;
+            vertical-align: top;
+        }
+        .news-alert {
             border-left: 4px solid #ff4d4d;
         }
-        .news-alert h3 {
+        .news-alert h3, .market-benchmarks h3 {
             margin: 0 0 6px;
             color: #721c24;
             font-size: 14px;
         }
-        .news-alert ul {
+        .news-alert ul, .market-benchmarks ul {
             margin: 0;
             padding: 0 0 0 12px;
             font-size: 10px;
+        }
+        .market-benchmarks ul li .change-up {
+            color: #4CAF50;
+        }
+        .market-benchmarks ul li .change-down {
+            color: #ff4d4d;
         }
         .watchlists {
             grid-row: 3;
@@ -67,9 +97,26 @@
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        .top-worst-stocks {
+            grid-row: 4;
+            grid-column: 1;
+            padding: 8px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 10px;
+        }
+        .top-worst-stocks h3 {
+            font-size: 12px;
+            margin: 0 0 6px;
+        }
+        .top-worst-stocks ul {
+            margin: 0;
+            padding: 0 0 0 12px;
+        }
         h1 {
             color: #333;
-            margin-top: 0;
+            margin: 0;
             font-size: 24px;
         }
         h2, h3 {
@@ -132,6 +179,19 @@
         }
         .delete-btn:hover {
             background-color: #cc0000;
+        }
+        .all-symbols-btn {
+            padding: 3px 6px;
+            font-size: 10px;
+            background-color: #4CAF50;
+            color: white;
+            margin-top: 10px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .all-symbols-btn:hover {
+            background-color: #45a049;
         }
         ul {
             list-style: none;
@@ -215,16 +275,49 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 50%;
+            max-height: 60%;
+            overflow-y: auto;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+        }
+        .modal-content ul {
+            padding-left: 15px;
+            font-size: 12px;
+        }
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            font-size: 16px;
         }
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
             }
-            .news-alert, .watchlists, .stock-section, .stock-data-table {
+            .news-alert, .market-benchmarks, .watchlists, .stock-section, .stock-data-table, .top-worst-stocks {
                 grid-column: 1;
             }
-            .news-alert {
+            .news-alert, .market-benchmarks {
                 grid-row: 2;
+                width: 100%;
             }
             .watchlists {
                 grid-row: 3;
@@ -235,6 +328,9 @@
             .stock-data-table {
                 grid-row: 5;
             }
+            .top-worst-stocks {
+                grid-row: 6;
+            }
             .watchlists, .stock-section {
                 width: 100%;
             }
@@ -243,9 +339,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- Row 1: Header -->
+        <!-- Row 1: Header with Date/Time and Market Status -->
         <div class="header">
+            <span class="datetime">{{ current_time }}</span>
             <h1>Marketmachine Dashboard</h1>
+            <span class="market-status {{ market_status|lower }}">{{ market_status }}</span>
         </div>
 
         <!-- Flash messages -->
@@ -261,12 +359,24 @@
             {% endwith %}
         </div>
 
-        <!-- Row 2, Column 3: Breaking News Alert -->
+        <!-- Row 2, Column 3: Breaking News and Market Benchmarks -->
         <div class="news-alert">
             <h3>Breaking News</h3>
             <ul>
                 {% for news in breaking_news %}
                     <li>{{ news }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="market-benchmarks">
+            <h3>Market Benchmarks</h3>
+            <ul>
+                {% for benchmark in benchmarks %}
+                    <li>{{ benchmark.name }}: {{ benchmark.close }} 
+                        <span class="change-{% if benchmark.change >= 0 %}up{% else %}down{% endif %}">
+                            ({{ '+%' if benchmark.change >= 0 else '%' }}{{ '%.2f'|format(benchmark.change) }}%)
+                        </span>
+                    </li>
                 {% endfor %}
             </ul>
         </div>
@@ -276,7 +386,7 @@
             <h2>Watchlists</h2>
             <div class="create-watchlist">
                 <form action="{{ url_for('add_watchlist') }}" method="POST">
-                    <input type="text" name="name" placeholder="New list" required>
+                    <input type="text" name="name" placeholder="New Watchlist" required>
                     <button type="submit" class="add-btn">Add</button>
                 </form>
             </div>
@@ -415,11 +525,25 @@
                                     <td>{{ stock_data.volume }}</td>
                                     <td>{{ stock_data.trend|default('N/A') }}</td>
                                     <td>{{ stock_data.macd_signal|default('N/A') }}</td>
-                                    <td class="mini-news">{{ stock_data.mini_news|default('No recent news') }}</td>
+                                    <td class="mini-news" onclick="openModal('modal-{{ stock_data.symbol }}')">{{ stock_data.mini_news|default('No recent news') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                    <button class="all-symbols-btn" onclick="window.location.href='{{ url_for('index', show_all=1) }}'">Show All Symbols</button>
+                    {% for stock_data in stock_data_list %}
+                        <div id="modal-{{ stock_data.symbol }}" class="modal">
+                            <div class="modal-content">
+                                <span class="close-btn" onclick="closeModal('modal-{{ stock_data.symbol }}')">&times;</span>
+                                <h3>News for {{ stock_data.symbol }}</h3>
+                                <ul>
+                                    {% for item in stock_data.news_items %}
+                                        <li>{{ item.date }}: {{ item.text }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    {% endfor %}
                     <script>
                         function sortTable(columnIndex, type) {
                             const table = document.getElementById("stockTable");
@@ -429,9 +553,8 @@
                                 table.dataset.sortOrder !== "asc" : true;
 
                             rows.sort((a, b) => {
-                                let aValue = a.cells[columnIndex].textContent.split(' ')[0]; // Remove arrow for sorting
-                                let bValue = b.cells[columnIndex].textContent.split(' ')[0]; // Remove arrow for sorting
-
+                                let aValue = a.cells[columnIndex].textContent.split(' ')[0];
+                                let bValue = b.cells[columnIndex].textContent.split(' ')[0];
                                 if (type === 'number') {
                                     aValue = aValue === 'N/A' ? -Infinity : parseFloat(aValue);
                                     bValue = bValue === 'N/A' ? -Infinity : parseFloat(bValue);
@@ -465,13 +588,47 @@
                             hiddenInput.value = input.value;
                         }
 
+                        function openModal(modalId) {
+                            document.getElementById(modalId).style.display = 'block';
+                        }
+
+                        function closeModal(modalId) {
+                            document.getElementById(modalId).style.display = 'none';
+                        }
+
                         // Initial sort by Symbol (ascending)
                         sortTable(0, 'string');
+
+                        // Update datetime every second
+                        setInterval(() => {
+                            const datetimeElement = document.querySelector('.datetime');
+                            const now = new Date();
+                            datetimeElement.textContent = now.toLocaleString('en-US', { 
+                                year: 'numeric', month: 'numeric', day: 'numeric', 
+                                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                                hour12: false, timeZone: 'America/New_York' 
+                            }) + ' EDT';
+                        }, 1000);
                     </script>
                 {% endif %}
             {% else %}
                 <p>No stock data available. Select a watchlist or stock to view data.</p>
             {% endif %}
+        </div>
+
+        <!-- Row 4, Column 1: Top/Worst Stocks -->
+        <div class="top-worst-stocks">
+            <h3>Market Movers</h3>
+            <ul>
+                <li><strong>Top 3:</strong></li>
+                {% for stock in top_worst_stocks[:3] %}
+                    <li>{{ stock.symbol }}: +{{ '%.2f'|format(stock.change_percent) }}%</li>
+                {% endfor %}
+                <li><strong>Worst 3:</strong></li>
+                {% for stock in top_worst_stocks[-3:] %}
+                    <li>{{ stock.symbol }}: {{ '%.2f'|format(stock.change_percent) }}%</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 </body>
