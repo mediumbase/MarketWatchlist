@@ -1,0 +1,137 @@
+2025-07-14T04:01:25.628102-0400 INFO Client connected
+2025-07-14T04:01:25.644185-0400 INFO Database connection established
+2025-07-14T04:01:25.662715-0400 INFO Database connection established
+2025-07-14T04:01:25.666263-0400 INFO Fetched cached data for AMPX from DB
+2025-07-14T04:01:25.666933-0400 INFO DB cache hit for AMPX
+2025-07-14T04:01:25.686801-0400 INFO Database connection established
+2025-07-14T04:01:25.688657-0400 INFO Fetched cached data for ABCL from DB
+2025-07-14T04:01:25.689049-0400 INFO DB cache hit for ABCL
+2025-07-14T04:01:25.705503-0400 INFO Database connection established
+2025-07-14T04:01:25.708390-0400 INFO Fetched cached data for RZLV from DB
+2025-07-14T04:01:25.708735-0400 INFO DB cache hit for RZLV
+2025-07-14T04:01:25.724467-0400 INFO Database connection established
+2025-07-14T04:01:25.726389-0400 INFO Fetched cached data for SBET from DB
+2025-07-14T04:01:25.726715-0400 INFO DB cache hit for SBET
+2025-07-14T04:01:25.742610-0400 INFO Database connection established
+2025-07-14T04:01:25.744834-0400 INFO Fetched cached data for KULR from DB
+2025-07-14T04:01:25.745172-0400 INFO DB cache hit for KULR
+2025-07-14T04:01:25.761067-0400 INFO Database connection established
+2025-07-14T04:01:25.762991-0400 INFO Fetched cached data for JNJ from DB
+2025-07-14T04:01:25.763339-0400 INFO DB cache hit for JNJ
+2025-07-14T04:01:25.780926-0400 INFO Database connection established
+2025-07-14T04:01:25.783624-0400 INFO Fetched cached data for PG from DB
+2025-07-14T04:01:25.784089-0400 INFO DB cache hit for PG
+2025-07-14T04:01:25.807831-0400 INFO Database connection established
+2025-07-14T04:01:25.809853-0400 INFO Fetched cached data for KO from DB
+2025-07-14T04:01:25.810206-0400 INFO DB cache hit for KO
+2025-07-14T04:01:25.825400-0400 INFO Database connection established
+2025-07-14T04:01:25.827361-0400 INFO Fetched cached data for PFE from DB
+2025-07-14T04:01:25.827726-0400 INFO DB cache hit for PFE
+2025-07-14T04:01:25.842628-0400 INFO Database connection established
+2025-07-14T04:01:25.844544-0400 INFO Fetched cached data for PM from DB
+2025-07-14T04:01:25.844971-0400 INFO DB cache hit for PM
+2025-07-14T04:01:25.861019-0400 INFO Database connection established
+2025-07-14T04:01:25.862839-0400 INFO Fetched cached data for AAPL from DB
+2025-07-14T04:01:25.863181-0400 INFO DB cache hit for AAPL
+2025-07-14T04:01:25.878658-0400 INFO Database connection established
+2025-07-14T04:01:25.880594-0400 INFO Fetched cached data for MSFT from DB
+2025-07-14T04:01:25.880998-0400 INFO DB cache hit for MSFT
+2025-07-14T04:01:25.896792-0400 INFO Database connection established
+2025-07-14T04:01:25.898771-0400 INFO Fetched cached data for GOOGL from DB
+2025-07-14T04:01:25.899139-0400 INFO DB cache hit for GOOGL
+2025-07-14T04:01:25.918022-0400 INFO Database connection established
+2025-07-14T04:01:25.920473-0400 INFO Fetched cached data for JPM from DB
+2025-07-14T04:01:25.920949-0400 INFO DB cache hit for JPM
+2025-07-14T04:01:25.940371-0400 INFO Database connection established
+2025-07-14T04:01:25.942707-0400 INFO Fetched cached data for XOM from DB
+2025-07-14T04:01:25.943127-0400 INFO DB cache hit for XOM
+2025-07-14T04:01:25.958769-0400 INFO Database connection established
+2025-07-14T04:01:25.960726-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T04:01:25.961159-0400 INFO DB cache hit for NVDA
+2025-07-14T04:01:25.976529-0400 INFO Database connection established
+2025-07-14T04:01:25.978633-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T04:01:25.979037-0400 INFO DB cache hit for AMD
+2025-07-14T04:01:25.995181-0400 INFO Database connection established
+2025-07-14T04:01:25.997232-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T04:01:25.997614-0400 INFO DB cache hit for TSLA
+2025-07-14T04:01:26.013291-0400 INFO Database connection established
+2025-07-14T04:01:26.015477-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T04:01:26.015816-0400 INFO DB cache hit for RGTI
+2025-07-14T04:01:26.032159-0400 INFO Database connection established
+2025-07-14T04:01:26.034163-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T04:01:26.034542-0400 INFO DB cache hit for MARA
+2025-07-14T04:01:26.051909-0400 INFO Database connection established
+2025-07-14T04:01:26.055188-0400 INFO Fetched cached data for OKLO from DB
+2025-07-14T04:01:26.056028-0400 INFO DB cache hit for OKLO
+2025-07-14T04:01:26.075628-0400 INFO Database connection established
+2025-07-14T04:01:26.077726-0400 INFO Fetched cached data for UEC from DB
+2025-07-14T04:01:26.078145-0400 INFO DB cache hit for UEC
+2025-07-14T04:01:26.092637-0400 INFO Database connection established
+2025-07-14T04:01:26.094604-0400 INFO Fetched cached data for LTBR from DB
+2025-07-14T04:01:26.094998-0400 INFO DB cache hit for LTBR
+2025-07-14T04:01:26.109860-0400 INFO Database connection established
+2025-07-14T04:01:26.111916-0400 INFO Fetched cached data for NEE from DB
+2025-07-14T04:01:26.112335-0400 INFO DB cache hit for NEE
+2025-07-14T04:01:26.126975-0400 INFO Database connection established
+2025-07-14T04:01:26.128736-0400 INFO Fetched cached data for ENPH from DB
+2025-07-14T04:01:26.129129-0400 INFO DB cache hit for ENPH
+2025-07-14T04:01:26.130807-0400 INFO Emitted batch update for 25 stocks
+2025-07-14T04:01:27.279276-0400 INFO Database connection established
+2025-07-14T04:01:27.297303-0400 INFO Database connection established
+2025-07-14T04:01:27.299311-0400 INFO Fetched cached data for ABCL from DB
+2025-07-14T04:01:27.315372-0400 INFO Database connection established
+2025-07-14T04:01:27.317489-0400 INFO Fetched cached data for AMPX from DB
+2025-07-14T04:01:27.333597-0400 INFO Database connection established
+2025-07-14T04:01:27.336037-0400 INFO Fetched cached data for KULR from DB
+2025-07-14T04:01:27.357572-0400 INFO Database connection established
+2025-07-14T04:01:27.362715-0400 INFO Fetched cached data for RZLV from DB
+2025-07-14T04:01:27.380648-0400 INFO Database connection established
+2025-07-14T04:01:27.382482-0400 INFO Fetched cached data for SBET from DB
+2025-07-14T04:01:27.650710-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T04:01:27.985874-0400 INFO Client connected
+2025-07-14T04:01:32.266347-0400 INFO Database connection established
+2025-07-14T04:01:32.290461-0400 INFO Database connection established
+2025-07-14T04:01:32.291482-0400 ERROR Failed to calculate holdings metrics: column "purchase_price" does not exist
+LINE 1: SELECT id, symbol, purchase_price, shares FROM stocks WHERE ...
+                           ^
+
+2025-07-14T04:01:32.429788-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T04:02:50.691383-0400 INFO Database connection established
+2025-07-14T04:02:50.709008-0400 INFO Database connection established
+2025-07-14T04:02:50.711093-0400 INFO Cache hit for AAPL
+2025-07-14T04:02:50.728832-0400 INFO Database connection established
+2025-07-14T04:02:50.730746-0400 INFO Cache hit for NVDA
+2025-07-14T04:02:50.753888-0400 INFO Database connection established
+2025-07-14T04:02:50.770052-0400 INFO Database connection established
+2025-07-14T04:02:50.772004-0400 INFO Cache hit for AAPL
+2025-07-14T04:02:52.598033-0400 INFO Database connection established
+2025-07-14T04:02:52.615602-0400 INFO Database connection established
+2025-07-14T04:02:52.617645-0400 INFO Cache hit for AAPL
+2025-07-14T04:02:52.633696-0400 INFO Database connection established
+2025-07-14T04:02:52.635697-0400 INFO Cache hit for NVDA
+2025-07-14T04:02:52.651160-0400 INFO Database connection established
+2025-07-14T04:02:52.667400-0400 INFO Database connection established
+2025-07-14T04:02:52.669387-0400 INFO Cache hit for AAPL
+2025-07-14T04:02:54.339013-0400 INFO Client connected
+2025-07-14T04:02:55.716919-0400 INFO Database connection established
+2025-07-14T04:02:55.734329-0400 INFO Database connection established
+2025-07-14T04:02:55.736417-0400 INFO Fetched cached data for ABCL from DB
+2025-07-14T04:02:55.752717-0400 INFO Database connection established
+2025-07-14T04:02:55.754644-0400 INFO Fetched cached data for AMPX from DB
+2025-07-14T04:02:55.770251-0400 INFO Database connection established
+2025-07-14T04:02:55.772164-0400 INFO Fetched cached data for KULR from DB
+2025-07-14T04:02:55.787997-0400 INFO Database connection established
+2025-07-14T04:02:55.790315-0400 INFO Fetched cached data for RZLV from DB
+2025-07-14T04:02:55.806902-0400 INFO Database connection established
+2025-07-14T04:02:55.809163-0400 INFO Fetched cached data for SBET from DB
+2025-07-14T04:02:55.945266-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T04:02:56.209666-0400 INFO Client connected
+2025-07-14T04:02:59.150062-0400 INFO Database connection established
+2025-07-14T04:02:59.167373-0400 INFO Database connection established
+2025-07-14T04:02:59.169830-0400 INFO Cache hit for AAPL
+2025-07-14T04:02:59.188105-0400 INFO Database connection established
+2025-07-14T04:02:59.190065-0400 INFO Cache hit for NVDA
+2025-07-14T04:02:59.210753-0400 INFO Database connection established
+2025-07-14T04:02:59.226980-0400 INFO Database connection established
+2025-07-14T04:02:59.229134-0400 INFO Cache hit for AAPL
+2025-07-14T04:03:42.630935-0400 INFO Client connected

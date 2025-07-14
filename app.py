@@ -1,18 +1,22 @@
 # File: app.py
-# Version: 2.3.2
+# Version: 2.3.6
 # Date: 2025-07-14
-# Time: 03:15 EDT
-# Description: Market Siren watchlist application with real-time updates, enhanced logging, and improved validation
+# Time: 04:40 EDT
+# Description: Market Siren watchlist application with real-time updates, enhanced logging, validation, and Holdings metrics
 # Changes:
 # - 2.3.0: Added Flask-SocketIO for real-time updates, loguru for structured logging, regex for symbol validation, CSRF protection
 # - 2.3.1: Fixed Decimal serialization issue for SocketIO batch updates
 # - 2.3.2: Removed invalid 'json' and 'cls' arguments from socketio.emit
+# - 2.3.3: Added Holdings watchlist with purchase_price and shares, and Holdings Metrics calculation
+# - 2.3.4: Made Holdings a button like All Symbols, displaying only Holdings stocks
+# - 2.3.5: Fixed TypeError in calculate_holdings_metrics by converting Decimal to float
+# - 2.3.6: Always compute holdings_metrics for Holdings watchlist
 
 from flask import Flask, request, render_template, redirect, url_for, flash
 from flask_socketio import SocketIO, emit
 from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, HiddenField, SubmitField
-from wtforms.validators import DataRequired, Regexp
+from wtforms import StringField, HiddenField, SubmitField, FloatField, IntegerField
+from wtforms.validators import DataRequired, Regexp, Optional
 from loguru import logger
 import psycopg2
 from dotenv import load_dotenv
@@ -26,7 +30,7 @@ import re
 import eventlet
 from decimal import Decimal
 
-# Custom JSON encoder to handle Decimal (used in save_stock_data_to_db)
+# Custom JSON encoder to handle Decimal
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
@@ -57,7 +61,7 @@ NEWSAPI_BASE_URL = "https://newsapi.org/v2"
 STOCK_CACHE = {}
 CACHE_TIMEOUT = 86400  # 24 hours
 
-# Mock data (subset for brevity; include full data from original)
+# Mock data
 MOCK_BREAKING_NEWS = [
     "Amprius (AMPX) surges on new EV battery contract",
     "NVIDIA (NVDA) hits $4T market cap milestone",
@@ -139,6 +143,8 @@ class RenameWatchlistForm(FlaskForm):
 class AddStockForm(FlaskForm):
     symbol = StringField('Stock Symbol', validators=[DataRequired(), Regexp(r'^[A-Z]{1,5}$', message="Invalid stock symbol")])
     watchlist_id = HiddenField(validators=[DataRequired()])
+    purchase_price = FloatField('Purchase Price', validators=[Optional()])
+    shares = IntegerField('Number of Shares', validators=[Optional()])
     submit = SubmitField('Add Stock')
 
 # Database connection
@@ -408,6 +414,58 @@ def fetch_breaking_news():
         logger.error(f"NewsAPI error: {e}")
         return MOCK_BREAKING_NEWS
 
+def calculate_holdings_metrics(watchlist_id):
+    conn = get_db_connection()
+    if not conn:
+        return None
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id, symbol, purchase_price, shares FROM stocks WHERE watchlist_id = %s;', (watchlist_id,))
+        holdings = cur.fetchall()
+        if not holdings:
+            return None
+
+        total_value = 0
+        total_cost = 0
+        total_gain_loss = 0
+        top_stock = None
+        worst_stock = None
+        max_gain = float('-inf')
+        min_gain = float('inf')
+
+        for holding in holdings:
+            stock_id, symbol, purchase_price, shares = holding
+            stock_data = fetch_stock_data_from_db(stock_id, symbol) or fetch_stock_data_api(stock_id, symbol)
+            if stock_data and purchase_price is not None and shares is not None:
+                purchase_price = float(purchase_price)  # Convert Decimal to float
+                shares = float(shares)  # Convert Decimal to float
+                current_value = stock_data['close'] * shares
+                total_value += current_value
+                total_cost += purchase_price * shares
+                gain_loss = (stock_data['close'] - purchase_price) * shares
+                total_gain_loss += gain_loss
+                percentage_gain = ((stock_data['close'] - purchase_price) / purchase_price) * 100 if purchase_price != 0 else 0
+                if percentage_gain > max_gain:
+                    max_gain = percentage_gain
+                    top_stock = symbol
+                if percentage_gain < min_gain:
+                    min_gain = percentage_gain
+                    worst_stock = symbol
+
+        return {
+            'total_value': total_value,
+            'total_cost': total_cost,
+            'total_gain_loss': total_gain_loss,
+            'top_stock': top_stock,
+            'worst_stock': worst_stock
+        }
+    except psycopg2.Error as e:
+        logger.error(f"Failed to calculate holdings metrics: {e}")
+        return None
+    finally:
+        cur.close()
+        conn.close()
+
 # Background task for periodic stock updates
 def background_task():
     while True:
@@ -449,22 +507,41 @@ def index():
     selected_watchlist_id = request.args.get('watchlist_id', type=int)
     selected_stock_id = request.args.get('stock_id', type=int)
     show_all_symbols = request.args.get('show_all', type=int) == 1
+    show_holdings = request.args.get('show_holdings', type=int) == 1
     selected_watchlist_name = None
     top_worst_stocks = []
+    holdings_metrics = None
 
     if conn:
         cur = conn.cursor()
         try:
-            cur.execute('SELECT id, name FROM watchlists ORDER BY name;')
+            # Always fetch Holdings watchlist ID for metrics
+            cur.execute('SELECT id FROM watchlists WHERE name = \'Holdings\';')
+            result = cur.fetchone()
+            holdings_watchlist_id = result[0] if result else None
+            if holdings_watchlist_id:
+                holdings_metrics = calculate_holdings_metrics(holdings_watchlist_id)
+
+            # Fetch watchlists, excluding Holdings from links
+            cur.execute('SELECT id, name FROM watchlists WHERE name != \'Holdings\' ORDER BY name;')
             watchlists = cur.fetchall()
 
-            if selected_watchlist_id:
+            if show_holdings:
+                cur.execute('SELECT id FROM watchlists WHERE name = \'Holdings\';')
+                result = cur.fetchone()
+                if result:
+                    selected_watchlist_id = result[0]
+                    selected_watchlist_name = 'Holdings'
+            elif selected_watchlist_id:
                 cur.execute('SELECT name FROM watchlists WHERE id = %s;', (selected_watchlist_id,))
                 result = cur.fetchone()
                 selected_watchlist_name = result[0] if result else None
 
             if show_all_symbols:
                 cur.execute('SELECT DISTINCT ON (symbol) id, symbol FROM stocks ORDER BY symbol, id;')
+                stocks = cur.fetchall()
+            elif show_holdings:
+                cur.execute('SELECT id, symbol FROM stocks WHERE watchlist_id = (SELECT id FROM watchlists WHERE name = \'Holdings\') ORDER BY symbol;')
                 stocks = cur.fetchall()
             elif selected_watchlist_id:
                 cur.execute('SELECT id, symbol FROM stocks WHERE watchlist_id = %s ORDER BY symbol;', (selected_watchlist_id,))
@@ -480,7 +557,7 @@ def index():
                         stock_data_list.append(stock_data)
                 else:
                     flash("Invalid stock ID.", "error")
-            elif show_all_symbols or selected_watchlist_id:
+            elif show_all_symbols or show_holdings or selected_watchlist_id:
                 all_stocks_data = []
                 for stock in stocks:
                     stock_id, symbol = stock
@@ -508,13 +585,17 @@ def index():
                            benchmarks=MOCK_BENCHMARKS, top_worst_stocks=top_worst_stocks,
                            current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S EDT"),
                            market_status=get_market_status(),
-                           watchlist_form=watchlist_form, add_stock_form=add_stock_form)
+                           watchlist_form=watchlist_form, add_stock_form=add_stock_form,
+                           holdings_metrics=holdings_metrics, show_all_symbols=show_all_symbols, show_holdings=show_holdings)
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():
     form = WatchlistForm()
     if form.validate_on_submit():
         name = form.name.data
+        if name.lower() == 'holdings':
+            flash("Cannot create a watchlist named 'Holdings'.", "error")
+            return redirect(url_for('index'))
         conn = get_db_connection()
         if not conn:
             return redirect(url_for('index'))
@@ -542,16 +623,23 @@ def rename_watchlist(watchlist_id):
     form = RenameWatchlistForm()
     if form.validate_on_submit():
         new_name = form.new_name.data
+        if new_name.lower() == 'holdings':
+            flash("Cannot rename to 'Holdings'.", "error")
+            return redirect(url_for('index', watchlist_id=watchlist_id))
         conn = get_db_connection()
         if not conn:
             return redirect(url_for('index', watchlist_id=watchlist_id))
 
         cur = conn.cursor()
         try:
-            cur.execute('UPDATE watchlists SET name = %s WHERE id = %s;', (new_name, watchlist_id))
-            conn.commit()
-            flash("Watchlist renamed successfully.", "success")
-            logger.info(f"Renamed watchlist {watchlist_id} to {new_name}")
+            cur.execute('SELECT name FROM watchlists WHERE id = %s;', (watchlist_id,))
+            if cur.fetchone()[0].lower() == 'holdings':
+                flash("Cannot rename the Holdings watchlist.", "error")
+            else:
+                cur.execute('UPDATE watchlists SET name = %s WHERE id = %s;', (new_name, watchlist_id))
+                conn.commit()
+                flash("Watchlist renamed successfully.", "success")
+                logger.info(f"Renamed watchlist {watchlist_id} to {new_name}")
         except psycopg2.Error as e:
             conn.rollback()
             flash("Failed to rename watchlist.", "error")
@@ -573,12 +661,16 @@ def delete_watchlist(watchlist_id):
 
     cur = conn.cursor()
     try:
-        cur.execute('DELETE FROM stock_data WHERE stock_id IN (SELECT id FROM stocks WHERE watchlist_id = %s);', (watchlist_id,))
-        cur.execute('DELETE FROM stocks WHERE watchlist_id = %s;', (watchlist_id,))
-        cur.execute('DELETE FROM watchlists WHERE id = %s;', (watchlist_id,))
-        conn.commit()
-        flash("Watchlist deleted successfully.", "success")
-        logger.info(f"Deleted watchlist {watchlist_id}")
+        cur.execute('SELECT name FROM watchlists WHERE id = %s;', (watchlist_id,))
+        if cur.fetchone()[0].lower() == 'holdings':
+            flash("Cannot delete the Holdings watchlist.", "error")
+        else:
+            cur.execute('DELETE FROM stock_data WHERE stock_id IN (SELECT id FROM stocks WHERE watchlist_id = %s);', (watchlist_id,))
+            cur.execute('DELETE FROM stocks WHERE watchlist_id = %s;', (watchlist_id,))
+            cur.execute('DELETE FROM watchlists WHERE id = %s;', (watchlist_id,))
+            conn.commit()
+            flash("Watchlist deleted successfully.", "success")
+            logger.info(f"Deleted watchlist {watchlist_id}")
     except psycopg2.Error as e:
         conn.rollback()
         flash("Failed to delete watchlist.", "error")
@@ -594,21 +686,32 @@ def add_stock():
     if form.validate_on_submit():
         watchlist_id = form.watchlist_id.data
         symbol = form.symbol.data.upper()
+        purchase_price = form.purchase_price.data
+        shares = form.shares.data
         valid_symbols = ["AMPX", "ABCL", "RZLV", "SBET", "KULR", "JNJ", "PG", "KO", "PFE", "PM", "AAPL", "MSFT", "GOOGL", "JPM", "XOM", "NVDA", "AMD", "TSLA", "RGTI", "MARA", "OKLO", "UEC", "LTBR", "NEE", "ENPH"]
         if symbol == "F":
             flash("Corrected symbol 'f' to 'F' (Ford).", "info")
         elif symbol not in valid_symbols:
             flash(f"Invalid symbol: {symbol}.", "error")
             logger.warning(f"Attempted to add invalid stock symbol: {symbol}")
-            return redirect(url_for('index'))
+            return redirect(url_for('index', watchlist_id=watchlist_id))
 
         conn = get_db_connection()
         if not conn:
-            return redirect(url_for('index'))
+            return redirect(url_for('index', watchlist_id=watchlist_id))
 
         cur = conn.cursor()
         try:
-            cur.execute('INSERT INTO stocks (watchlist_id, symbol) VALUES (%s, %s) RETURNING id;', (watchlist_id, symbol))
+            cur.execute('SELECT name FROM watchlists WHERE id = %s;', (watchlist_id,))
+            watchlist_name = cur.fetchone()[0]
+            if watchlist_name.lower() == 'holdings' and (not purchase_price or not shares):
+                flash("Purchase price and shares are required for Holdings.", "error")
+                cur.close()
+                conn.close()
+                return redirect(url_for('index', watchlist_id=watchlist_id))
+
+            cur.execute('INSERT INTO stocks (watchlist_id, symbol, purchase_price, shares) VALUES (%s, %s, %s, %s) RETURNING id;', 
+                        (watchlist_id, symbol, purchase_price, shares))
             stock_id = cur.fetchone()[0]
             conn.commit()
             flash("Stock added successfully.", "success")

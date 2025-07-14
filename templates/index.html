@@ -1,10 +1,15 @@
 <!-- File: index.html -->
-<!-- Version: 2.2.0 -->
+<!-- Version: 2.3.4 -->
 <!-- Date: 2025-07-14 -->
-<!-- Time: 02:23 EDT -->
-<!-- Description: Market Siren dashboard with real-time updates and CSRF protection -->
+<!-- Time: 04:54 EDT -->
+<!-- Description: Market Siren dashboard with real-time updates, CSRF protection, and Holdings metrics -->
 <!-- Changes: -->
 <!-- - 2.2.0: Added SocketIO for real-time updates, improved client-side row handling, CSRF tokens -->
+<!-- - 2.3.0: Moved All Symbols to a button, added Holdings watchlist, integrated Holdings Metrics div -->
+<!-- - 2.3.1: Made Holdings a button styled like All Symbols, displaying only Holdings stocks -->
+<!-- - 2.3.2: Ensured Holdings button matches All Symbols styling and behavior -->
+<!-- - 2.3.3: Fixed addStockForm overflow, redesigned Holdings Metrics with 2x2 grid and Gain/Loss row -->
+<!-- - 2.3.4: Always show Holdings Metrics, fixed watchlist name editing -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -139,7 +144,7 @@
         .news-alert {
             border-left: 4px solid #ff4d4d;
         }
-        .news-alert h3, .market-movers h3, .market-benchmarks h3, .local-box h3 {
+        .news-alert h3, .market-movers h3, .market-benchmarks h3, .local-box h3, .holdings-metrics h4 {
             margin: 0 0 10px;
             font-size: 16px;
             color: #1a2a44;
@@ -176,6 +181,38 @@
         .local-box .market-status.closed {
             background-color: #ff4d4d;
         }
+        .holdings-metrics {
+            margin-top: 15px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .gain-loss-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .metric-box {
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .metric-box strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
         .watchlists, .stock-section, .stock-data-table {
             padding: 15px;
             background-color: #fff;
@@ -200,20 +237,27 @@
             font-size: 16px;
             font-weight: 600;
         }
-        form {
+        #addStockForm {
             display: flex;
-            gap: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
             margin-bottom: 10px;
+            max-width: 100%;
+            box-sizing: border-box;
         }
-        input[type="text"] {
-            padding: 8px;
+        #addStockForm input[type="text"],
+        #addStockForm input[type="number"] {
+            padding: 6px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
             flex: 1;
+            min-width: 0;
+            max-width: 80px;
         }
-        .create-watchlist input[type="text"] {
-            width: 100px;
+        #addStockForm .add-btn {
+            padding: 6px 12px;
+            font-size: 12px;
         }
         button {
             padding: 8px 16px;
@@ -230,17 +274,17 @@
         .add-btn:hover {
             background-color: #45a049;
         }
-        .all-symbols-btn {
+        .all-symbols-btn, .holdings-btn {
             background-color: #007bff;
             color: white;
             padding: 6px 12px;
             font-size: 12px;
-            margin-top: 10px;
+            margin-top: 5px;
             display: block;
-            margin-left: auto;
-            margin-right: auto;
+            width: 100%;
+            text-align: center;
         }
-        .all-symbols-btn:hover {
+        .all-symbols-btn:hover, .holdings-btn:hover {
             background-color: #0056b3;
         }
         .rename-btn, .delete-btn {
@@ -267,6 +311,16 @@
         .delete-btn:hover {
             background-color: #cc0000;
         }
+        .rename-submit-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        .rename-submit-btn:hover {
+            background-color: #0056b3;
+        }
         ul {
             list-style: none;
             padding: 0;
@@ -292,7 +346,10 @@
         .watchlist-name-input {
             display: none;
             width: 100px;
-            font-size: 14px;
+            font-size: 12px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
         table {
             width: 100%;
@@ -389,6 +446,10 @@
             .stock-data-table {
                 grid-row: 5;
             }
+            #addStockForm input[type="text"],
+            #addStockForm input[type="number"] {
+                max-width: 100px;
+            }
         }
     </style>
 </head>
@@ -460,6 +521,31 @@
                 <h3>Market Status</h3>
                 <p>{{ current_time }}</p>
                 <span class="market-status {{ market_status|lower }}">{{ market_status }}</span>
+                {% if holdings_metrics %}
+                    <div class="holdings-metrics">
+                        <h4>Holdings Metrics</h4>
+                        <div class="metrics-grid">
+                            <div class="metric-box">
+                                <strong>Total Value</strong><br>${{ holdings_metrics.total_value|round(2) }}
+                            </div>
+                            <div class="metric-box">
+                                <strong>Total Cost</strong><br>${{ holdings_metrics.total_cost|round(2) }}
+                            </div>
+                            <div class="metric-box">
+                                <strong>Top Stock</strong><br>{{ holdings_metrics.top_stock or 'N/A' }}
+                            </div>
+                            <div class="metric-box">
+                                <strong>Worst Stock</strong><br>{{ holdings_metrics.worst_stock or 'N/A' }}
+                            </div>
+                        </div>
+                        <div class="gain-loss-row">
+                            <strong>Gain/Loss</strong>&nbsp;
+                            <span class="{% if holdings_metrics.total_gain_loss >= 0 %}change-up{% else %}change-down{% endif %}">
+                                ${{ holdings_metrics.total_gain_loss|round(2) }}
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
@@ -473,19 +559,17 @@
                 </form>
             </div>
             <ul>
-                <li>
-                    <a href="{{ url_for('index', show_all=1) }}" class="watchlist-name">All Symbols</a>
-                </li>
                 {% for watchlist in watchlists %}
                     <li>
-                        <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}" class="watchlist-name">{{ watchlist[1] }}</a>
-                        <input type="text" class="watchlist-name-input" id="input-{{ watchlist[0] }}" name="new_name" value="{{ watchlist[1] }}" style="display: none;">
+                        <a href="{{ url_for('index', watchlist_id=watchlist[0]) }}" class="watchlist-name" id="name-{{ watchlist[0] }}">{{ watchlist[1] }}</a>
+                        <form action="{{ url_for('rename_watchlist', watchlist_id=watchlist[0]) }}" method="POST" class="rename-form" id="form-{{ watchlist[0] }}">
+                            {{ watchlist_form.csrf_token }}
+                            <input type="text" class="watchlist-name-input" id="input-{{ watchlist[0] }}" name="new_name" value="{{ watchlist[1] }}">
+                            <input type="hidden" name="watchlist_id" value="{{ watchlist[0] }}">
+                            <button type="submit" class="rename-submit-btn" style="display: none;">Save</button>
+                        </form>
                         <div>
-                            <form action="{{ url_for('rename_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
-                                {{ watchlist_form.csrf_token }}
-                                <input type="hidden" name="new_name" value="{{ watchlist[1] }}">
-                                <button type="button" class="rename-btn" title="Rename Watchlist" onclick="toggleEdit(this, 'input-{{ watchlist[0] }}', this.form.querySelector('.watchlist-name'));"></button>
-                            </form>
+                            <button type="button" class="rename-btn" title="Rename Watchlist" onclick="toggleEdit('input-{{ watchlist[0] }}', 'name-{{ watchlist[0] }}', 'form-{{ watchlist[0] }}')"></button>
                             <form action="{{ url_for('delete_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
                                 {{ watchlist_form.csrf_token }}
                                 <button type="submit" class="delete-btn" title="Delete Watchlist"></button>
@@ -493,16 +577,26 @@
                         </div>
                     </li>
                 {% endfor %}
+                <li>
+                    <button onclick="window.location.href='{{ url_for('index', show_holdings=1) }}'" class="holdings-btn">Holdings</button>
+                </li>
+                <li>
+                    <button onclick="window.location.href='{{ url_for('index', show_all=1) }}'" class="all-symbols-btn">All Symbols</button>
+                </li>
             </ul>
         </div>
 
         <div class="stock-section">
-            {% if selected_watchlist_id and selected_watchlist_name %}
-                <h3>{{ selected_watchlist_name }}</h3>
-                <form action="{{ url_for('add_stock') }}" method="POST">
+            {% if selected_watchlist_id or show_holdings %}
+                <h3>{{ selected_watchlist_name or 'Holdings' }}</h3>
+                <form action="{{ url_for('add_stock') }}" method="POST" id="addStockForm">
                     {{ add_stock_form.csrf_token }}
                     {{ add_stock_form.watchlist_id(value=selected_watchlist_id) }}
-                    {{ add_stock_form.symbol(placeholder="Stock Symbol (e.g., SOFI)") }}
+                    {{ add_stock_form.symbol(placeholder="Symbol") }}
+                    <div id="holdingsFields" style="display: {% if selected_watchlist_name == 'Holdings' or show_holdings %}block{% else %}none{% endif %};">
+                        {{ add_stock_form.purchase_price(placeholder="Price") }}
+                        {{ add_stock_form.shares(placeholder="Shares") }}
+                    </div>
                     {{ add_stock_form.submit(class="add-btn") }}
                 </form>
                 <ul>
@@ -697,19 +791,21 @@
                             table.dataset.sortOrder = isAscending ? "asc" : "desc";
                         }
 
-                        function toggleEdit(button, inputId, nameElement) {
+                        function toggleEdit(inputId, nameId, formId) {
                             const input = document.getElementById(inputId);
-                            const form = button.closest('form');
-                            const hiddenInput = form.querySelector('input[name="new_name"]');
-                            nameElement.style.display = nameElement.style.display === 'none' ? 'inline' : 'none';
-                            input.style.display = input.style.display === 'none' ? 'inline' : 'none';
-                            if (input.style.display === 'inline') {
+                            const nameElement = document.getElementById(nameId);
+                            const form = document.getElementById(formId);
+                            const submitBtn = form.querySelector('.rename-submit-btn');
+                            const isEditing = input.style.display === 'none';
+                            nameElement.style.display = isEditing ? 'none' : 'inline';
+                            input.style.display = isEditing ? 'inline' : 'none';
+                            submitBtn.style.display = isEditing ? 'inline' : 'none';
+                            if (isEditing) {
                                 input.focus();
+                                input.onblur = () => {
+                                    form.querySelector('input[name="new_name"]').value = input.value;
+                                };
                             }
-                            input.addEventListener('blur', () => {
-                                hiddenInput.value = input.value;
-                            });
-                            hiddenInput.value = input.value;
                         }
 
                         function openModal(modalId) {
@@ -721,6 +817,17 @@
                         }
 
                         sortTable(0, 'string');
+
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const watchlistName = "{{ selected_watchlist_name }}";
+                            const showHoldings = {{ show_holdings|tojson }};
+                            const holdingsFields = document.getElementById('holdingsFields');
+                            if (watchlistName === 'Holdings' || showHoldings) {
+                                holdingsFields.style.display = 'block';
+                            } else {
+                                holdingsFields.style.display = 'none';
+                            }
+                        });
                     </script>
                 {% endif %}
             {% else %}
