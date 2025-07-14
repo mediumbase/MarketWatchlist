@@ -1,13 +1,10 @@
 <!-- File: index.html -->
-<!-- Version: 2.1.1 -->
-<!-- Date: 2025-07-13 -->
-<!-- Time: 15:45 EDT -->
-<!-- Description: Market Siren dashboard interface with trillion-dollar scale optimizations -->
+<!-- Version: 2.2.0 -->
+<!-- Date: 2025-07-14 -->
+<!-- Time: 02:23 EDT -->
+<!-- Description: Market Siren dashboard with real-time updates and CSRF protection -->
 <!-- Changes: -->
-<!-- - 1.0.0 to 1.0.4: Initial versions with watchlist management, stock data, and UI enhancements -->
-<!-- - 2.0.0: Modernized UI, optimized for scale with PostgreSQL, added indexes -->
-<!-- - 2.1.0: Integrated Finnhub and NewsAPI, improved API fallback -->
-<!-- - 2.1.1: Fixed TypeError for news_items, handled invalid volume input -->
+<!-- - 2.2.0: Added SocketIO for real-time updates, improved client-side row handling, CSRF tokens -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -15,6 +12,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Market Siren Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.0.1/dist/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -394,7 +393,6 @@
     </style>
 </head>
 <body>
-    <!-- Top Header -->
     <div class="top-header">
         <div class="logo">Market Siren</div>
         <div class="dropdown">
@@ -409,12 +407,10 @@
     </div>
 
     <div class="container">
-        <!-- Row 1: Header -->
         <div class="header">
             <h1>Market Siren Dashboard</h1>
         </div>
 
-        <!-- Row 2: Flash Messages and Widgets -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -467,13 +463,13 @@
             </div>
         </div>
 
-        <!-- Row 3, Column 1: Watchlists -->
         <div class="watchlists">
             <h2>Watchlists</h2>
             <div class="create-watchlist">
                 <form action="{{ url_for('add_watchlist') }}" method="POST">
-                    <input type="text" name="name" placeholder="New Watchlist" required>
-                    <button type="submit" class="add-btn">Add</button>
+                    {{ watchlist_form.csrf_token }}
+                    {{ watchlist_form.name(placeholder="New Watchlist") }}
+                    {{ watchlist_form.submit(class="add-btn") }}
                 </form>
             </div>
             <ul>
@@ -486,10 +482,12 @@
                         <input type="text" class="watchlist-name-input" id="input-{{ watchlist[0] }}" name="new_name" value="{{ watchlist[1] }}" style="display: none;">
                         <div>
                             <form action="{{ url_for('rename_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
+                                {{ watchlist_form.csrf_token }}
                                 <input type="hidden" name="new_name" value="{{ watchlist[1] }}">
                                 <button type="button" class="rename-btn" title="Rename Watchlist" onclick="toggleEdit(this, 'input-{{ watchlist[0] }}', this.form.querySelector('.watchlist-name'));"></button>
                             </form>
                             <form action="{{ url_for('delete_watchlist', watchlist_id=watchlist[0]) }}" method="POST" style="display: inline;">
+                                {{ watchlist_form.csrf_token }}
                                 <button type="submit" class="delete-btn" title="Delete Watchlist"></button>
                             </form>
                         </div>
@@ -498,14 +496,14 @@
             </ul>
         </div>
 
-        <!-- Row 3, Column 2: Stock Management -->
         <div class="stock-section">
             {% if selected_watchlist_id and selected_watchlist_name %}
                 <h3>{{ selected_watchlist_name }}</h3>
                 <form action="{{ url_for('add_stock') }}" method="POST">
-                    <input type="hidden" name="watchlist_id" value="{{ selected_watchlist_id }}">
-                    <input type="text" name="symbol" placeholder="Stock Symbol (e.g., SOFI)" required>
-                    <button type="submit" class="add-btn">Add Stock</button>
+                    {{ add_stock_form.csrf_token }}
+                    {{ add_stock_form.watchlist_id(value=selected_watchlist_id) }}
+                    {{ add_stock_form.symbol(placeholder="Stock Symbol (e.g., SOFI)") }}
+                    {{ add_stock_form.submit(class="add-btn") }}
                 </form>
                 <ul>
                     {% for stock in stocks %}
@@ -513,6 +511,7 @@
                             <span>{{ stock[1] }}</span>
                             <div>
                                 <form action="{{ url_for('delete_stock', stock_id=stock[0]) }}" method="POST" style="display: inline;">
+                                    {{ watchlist_form.csrf_token }}
                                     <button type="submit" class="delete-btn" title="Delete Stock"></button>
                                 </form>
                             </div>
@@ -526,7 +525,6 @@
             {% endif %}
         </div>
 
-        <!-- Row 3, Column 3: Stock Data Table -->
         <div class="stock-data-table">
             {% if stock_data_list %}
                 <h3>Stock Data</h3>
@@ -556,7 +554,6 @@
                             <canvas id="priceChart-{{ stock_data.symbol }}" width="400" height="200"></canvas>
                         </div>
                     {% endfor %}
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                     <script>
                         {% for stock_data in stock_data_list %}
                             const ctx_{{ stock_data.symbol }} = document.getElementById('priceChart-{{ stock_data.symbol }}').getContext('2d');
@@ -566,7 +563,7 @@
                                     labels: ['Open', 'High', 'Low', 'Close'],
                                     datasets: [{
                                         label: '{{ stock_data.symbol }} Prices',
-                                        data: [{{ stock_data.open }}, {{ stock_data.high }}, {{ stock_data.low }}, {{ stock_data.close }}],
+                                        data: [{{ stock_data.open|default(0) }}, {{ stock_data.high|default(0) }}, {{ stock_data.low|default(0) }}, {{ stock_data.close|default(0) }}],
                                         backgroundColor: ['#4CAF50', '#2196F3', '#F44336', '#FF9800']
                                     }]
                                 },
@@ -591,7 +588,7 @@
                         </thead>
                         <tbody>
                             {% for stock_data in stock_data_list %}
-                                <tr>
+                                <tr data-symbol="{{ stock_data.symbol }}">
                                     <td>{{ stock_data.symbol }}</td>
                                     <td>
                                         {{ stock_data.close }}
@@ -633,6 +630,45 @@
                         </div>
                     {% endfor %}
                     <script>
+                        const socket = io();
+                        socket.on('stock_batch_update', function(stockDataList) {
+                            const table = document.getElementById("stockTable");
+                            const tbody = table.getElementsByTagName("tbody")[0];
+                            stockDataList.forEach(stockData => {
+                                let row = Array.from(tbody.getElementsByTagName("tr")).find(r => r.dataset.symbol === stockData.symbol);
+                                if (!row) {
+                                    row = document.createElement("tr");
+                                    row.dataset.symbol = stockData.symbol;
+                                    row.innerHTML = `
+                                        <td>${stockData.symbol}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>${stockData.high || 'N/A'}</td>
+                                        <td>${stockData.low || 'N/A'}</td>
+                                        <td>${stockData.volume || 'N/A'}</td>
+                                        <td>${stockData.trend || 'N/A'}</td>
+                                        <td>${stockData.macd_signal || 'N/A'}</td>
+                                        <td class="mini-news" onclick="openModal('modal-${stockData.symbol}')">${stockData.mini_news || 'No recent news'}</td>
+                                    `;
+                                    tbody.appendChild(row);
+                                }
+                                const cells = row.cells;
+                                cells[1].innerHTML = stockData.close + (stockData.close > stockData.open ? ' <span class="arrow-up">▲</span>' : stockData.close < stockData.open ? ' <span class="arrow-down">▼</span>' : '');
+                                cells[2].innerHTML = stockData.open + (stockData.close > stockData.open ? ' <span class="arrow-up">▲</span>' : stockData.close < stockData.open ? ' <span class="arrow-down">▼</span>' : '');
+                                cells[3].textContent = stockData.high || 'N/A';
+                                cells[4].textContent = stockData.low || 'N/A';
+                                cells[5].textContent = stockData.volume || 'N/A';
+                                cells[6].textContent = stockData.trend || 'N/A';
+                                cells[7].textContent = stockData.macd_signal || 'N/A';
+                                cells[8].textContent = stockData.mini_news || 'No recent news';
+                                const modal = document.getElementById(`modal-${stockData.symbol}`);
+                                if (modal) {
+                                    const ul = modal.querySelector('ul');
+                                    ul.innerHTML = stockData.news_items.map(item => `<li>${item.date}: ${item.text}</li>`).join('');
+                                }
+                            });
+                        });
+
                         function sortTable(columnIndex, type) {
                             const table = document.getElementById("stockTable");
                             const tbody = table.getElementsByTagName("tbody")[0];
@@ -684,7 +720,6 @@
                             document.getElementById(modalId).style.display = 'none';
                         }
 
-                        // Initial sort by Symbol (ascending)
                         sortTable(0, 'string');
                     </script>
                 {% endif %}

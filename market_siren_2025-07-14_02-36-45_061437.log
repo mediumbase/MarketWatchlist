@@ -1,0 +1,130 @@
+2025-07-14T02:36:48.850564-0400 INFO Database connection established
+2025-07-14T02:36:48.914448-0400 INFO Database connection established
+2025-07-14T02:36:48.917538-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T02:36:48.961667-0400 INFO Database connection established
+2025-07-14T02:36:48.966065-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T02:36:49.001983-0400 INFO Database connection established
+2025-07-14T02:36:49.004715-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T02:36:49.044901-0400 INFO Database connection established
+2025-07-14T02:36:49.049059-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T02:36:49.093644-0400 INFO Database connection established
+2025-07-14T02:36:49.097697-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T02:36:49.447561-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T02:36:49.952814-0400 INFO Client connected
+2025-07-14T02:36:49.982297-0400 INFO Database connection established
+2025-07-14T02:36:50.008300-0400 INFO Database connection established
+2025-07-14T02:36:50.011615-0400 INFO Fetched cached data for AMPX from DB
+2025-07-14T02:36:50.012106-0400 INFO DB cache hit for AMPX
+2025-07-14T02:36:50.059556-0400 INFO Database connection established
+2025-07-14T02:36:50.063476-0400 INFO Fetched cached data for ABCL from DB
+2025-07-14T02:36:50.064109-0400 INFO DB cache hit for ABCL
+2025-07-14T02:36:50.101370-0400 INFO Database connection established
+2025-07-14T02:36:50.105615-0400 INFO Fetched cached data for RZLV from DB
+2025-07-14T02:36:50.109657-0400 INFO DB cache hit for RZLV
+2025-07-14T02:36:50.153156-0400 INFO Database connection established
+2025-07-14T02:36:50.157467-0400 INFO Fetched cached data for SBET from DB
+2025-07-14T02:36:50.158091-0400 INFO DB cache hit for SBET
+2025-07-14T02:36:50.203487-0400 INFO Database connection established
+2025-07-14T02:36:50.206206-0400 INFO Fetched cached data for KULR from DB
+2025-07-14T02:36:50.206725-0400 INFO DB cache hit for KULR
+2025-07-14T02:36:50.257573-0400 INFO Database connection established
+2025-07-14T02:36:50.261862-0400 INFO Fetched cached data for JNJ from DB
+2025-07-14T02:36:50.262549-0400 INFO DB cache hit for JNJ
+2025-07-14T02:36:50.298470-0400 INFO Database connection established
+2025-07-14T02:36:50.303808-0400 INFO Fetched cached data for PG from DB
+2025-07-14T02:36:50.304453-0400 INFO DB cache hit for PG
+2025-07-14T02:36:50.352366-0400 INFO Database connection established
+2025-07-14T02:36:50.356068-0400 INFO Fetched cached data for KO from DB
+2025-07-14T02:36:50.356634-0400 INFO DB cache hit for KO
+2025-07-14T02:36:50.399786-0400 INFO Database connection established
+2025-07-14T02:36:50.404676-0400 INFO Fetched cached data for PFE from DB
+2025-07-14T02:36:50.405550-0400 INFO DB cache hit for PFE
+2025-07-14T02:36:50.446098-0400 INFO Database connection established
+2025-07-14T02:36:50.449139-0400 INFO Fetched cached data for PM from DB
+2025-07-14T02:36:50.449622-0400 INFO DB cache hit for PM
+2025-07-14T02:36:50.481870-0400 INFO Database connection established
+2025-07-14T02:36:50.485412-0400 INFO Fetched cached data for AAPL from DB
+2025-07-14T02:36:50.485865-0400 INFO DB cache hit for AAPL
+2025-07-14T02:36:50.518957-0400 INFO Database connection established
+2025-07-14T02:36:50.524300-0400 INFO Fetched cached data for MSFT from DB
+2025-07-14T02:36:50.524875-0400 INFO DB cache hit for MSFT
+2025-07-14T02:36:50.560447-0400 INFO Database connection established
+2025-07-14T02:36:50.564021-0400 INFO Fetched cached data for GOOGL from DB
+2025-07-14T02:36:50.564611-0400 INFO DB cache hit for GOOGL
+2025-07-14T02:36:50.610439-0400 INFO Database connection established
+2025-07-14T02:36:50.618723-0400 INFO Fetched cached data for JPM from DB
+2025-07-14T02:36:50.619465-0400 INFO DB cache hit for JPM
+2025-07-14T02:36:50.665348-0400 INFO Database connection established
+2025-07-14T02:36:50.669587-0400 INFO Fetched cached data for XOM from DB
+2025-07-14T02:36:50.670344-0400 INFO DB cache hit for XOM
+2025-07-14T02:36:50.716885-0400 INFO Database connection established
+2025-07-14T02:36:50.720840-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T02:36:50.721496-0400 INFO DB cache hit for NVDA
+2025-07-14T02:36:50.767865-0400 INFO Database connection established
+2025-07-14T02:36:50.771833-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T02:36:50.772456-0400 INFO DB cache hit for AMD
+2025-07-14T02:36:50.825087-0400 INFO Database connection established
+2025-07-14T02:36:50.829344-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T02:36:50.829982-0400 INFO DB cache hit for TSLA
+2025-07-14T02:36:50.877784-0400 INFO Database connection established
+2025-07-14T02:36:50.880300-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T02:36:50.880731-0400 INFO DB cache hit for RGTI
+2025-07-14T02:36:50.917906-0400 INFO Database connection established
+2025-07-14T02:36:50.924070-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T02:36:50.925089-0400 INFO DB cache hit for MARA
+2025-07-14T02:36:50.961379-0400 INFO Database connection established
+2025-07-14T02:36:50.965158-0400 INFO Fetched cached data for OKLO from DB
+2025-07-14T02:36:50.965857-0400 INFO DB cache hit for OKLO
+2025-07-14T02:36:50.992019-0400 INFO Database connection established
+2025-07-14T02:36:50.995196-0400 INFO Fetched cached data for UEC from DB
+2025-07-14T02:36:50.995714-0400 INFO DB cache hit for UEC
+2025-07-14T02:36:51.046454-0400 INFO Database connection established
+2025-07-14T02:36:51.052542-0400 INFO Fetched cached data for LTBR from DB
+2025-07-14T02:36:51.053267-0400 INFO DB cache hit for LTBR
+2025-07-14T02:36:51.115359-0400 INFO Database connection established
+2025-07-14T02:36:51.119875-0400 INFO Fetched cached data for NEE from DB
+2025-07-14T02:36:51.121458-0400 INFO DB cache hit for NEE
+2025-07-14T02:36:51.167379-0400 INFO Database connection established
+2025-07-14T02:36:51.171930-0400 INFO Fetched cached data for ENPH from DB
+2025-07-14T02:36:51.172655-0400 INFO DB cache hit for ENPH
+2025-07-14T02:36:51.174807-0400 ERROR Error in background task: Object of type Decimal is not JSON serializable
+2025-07-14T02:37:00.332445-0400 INFO Database connection established
+2025-07-14T02:37:00.401438-0400 INFO Database connection established
+2025-07-14T02:37:00.405555-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T02:37:00.460874-0400 INFO Database connection established
+2025-07-14T02:37:00.463958-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T02:37:00.502370-0400 INFO Database connection established
+2025-07-14T02:37:00.506263-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T02:37:00.549580-0400 INFO Database connection established
+2025-07-14T02:37:00.552940-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T02:37:00.589442-0400 INFO Database connection established
+2025-07-14T02:37:00.593638-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T02:37:00.750598-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T02:37:00.975669-0400 INFO Client connected
+2025-07-14T02:41:51.202879-0400 INFO Database connection established
+2025-07-14T02:41:51.205189-0400 INFO Cache hit for AMPX
+2025-07-14T02:41:51.205635-0400 INFO Cache hit for ABCL
+2025-07-14T02:41:51.205837-0400 INFO Cache hit for RZLV
+2025-07-14T02:41:51.206017-0400 INFO Cache hit for SBET
+2025-07-14T02:41:51.206184-0400 INFO Cache hit for KULR
+2025-07-14T02:41:51.206380-0400 INFO Cache hit for JNJ
+2025-07-14T02:41:51.206557-0400 INFO Cache hit for PG
+2025-07-14T02:41:51.206784-0400 INFO Cache hit for KO
+2025-07-14T02:41:51.207005-0400 INFO Cache hit for PFE
+2025-07-14T02:41:51.207227-0400 INFO Cache hit for PM
+2025-07-14T02:41:51.207896-0400 INFO Cache hit for AAPL
+2025-07-14T02:41:51.208257-0400 INFO Cache hit for MSFT
+2025-07-14T02:41:51.208801-0400 INFO Cache hit for GOOGL
+2025-07-14T02:41:51.209229-0400 INFO Cache hit for JPM
+2025-07-14T02:41:51.209840-0400 INFO Cache hit for XOM
+2025-07-14T02:41:51.210317-0400 INFO Cache hit for NVDA
+2025-07-14T02:41:51.210842-0400 INFO Cache hit for AMD
+2025-07-14T02:41:51.211194-0400 INFO Cache hit for TSLA
+2025-07-14T02:41:51.211475-0400 INFO Cache hit for RGTI
+2025-07-14T02:41:51.211784-0400 INFO Cache hit for MARA
+2025-07-14T02:41:51.212100-0400 INFO Cache hit for OKLO
+2025-07-14T02:41:51.212370-0400 INFO Cache hit for UEC
+2025-07-14T02:41:51.212648-0400 INFO Cache hit for LTBR
+2025-07-14T02:41:51.212936-0400 INFO Cache hit for NEE
+2025-07-14T02:41:51.213222-0400 INFO Cache hit for ENPH
+2025-07-14T02:41:51.214897-0400 ERROR Error in background task: Object of type Decimal is not JSON serializable

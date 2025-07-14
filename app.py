@@ -1,25 +1,40 @@
 # File: app.py
-# Version: 2.2.0
-# Date: 2025-07-13
-# Time: 16:00 EDT
-# Description: Market Siren watchlist application with multi-API support and trillion-dollar scale optimizations
+# Version: 2.3.2
+# Date: 2025-07-14
+# Time: 03:15 EDT
+# Description: Market Siren watchlist application with real-time updates, enhanced logging, and improved validation
 # Changes:
-# - 1.0.0 to 1.0.8: Initial versions with watchlist management, stock data, and UI enhancements
-# - 2.0.0: Optimized for scale with PostgreSQL, added indexes, prioritized DB/cache
-# - 2.1.0: Integrated Finnhub and NewsAPI, improved API fallback
-# - 2.1.1: Fixed TypeError for news_items, handled invalid volume input, ensured Battery watchlist and All Symbols work
-# - 2.2.0: Added 5 curated watchlists for 2025 (Penny Stocks, Dividend Stocks, Industry Leaders, AI/Tech, Clean Energy)
+# - 2.3.0: Added Flask-SocketIO for real-time updates, loguru for structured logging, regex for symbol validation, CSRF protection
+# - 2.3.1: Fixed Decimal serialization issue for SocketIO batch updates
+# - 2.3.2: Removed invalid 'json' and 'cls' arguments from socketio.emit
 
 from flask import Flask, request, render_template, redirect, url_for, flash
+from flask_socketio import SocketIO, emit
+from flask_wtf import FlaskForm, CSRFProtect
+from wtforms import StringField, HiddenField, SubmitField
+from wtforms.validators import DataRequired, Regexp
+from loguru import logger
 import psycopg2
 from dotenv import load_dotenv
 import os
-import logging
 import requests
 from time import sleep
 from requests.exceptions import HTTPError
 from datetime import datetime
 import json
+import re
+import eventlet
+from decimal import Decimal
+
+# Custom JSON encoder to handle Decimal (used in save_stock_data_to_db)
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
+
+# Initialize logging
+logger.add("market_siren_{time}.log", rotation="1 MB", format="{time} {level} {message}")
 
 # Load environment variables
 load_dotenv()
@@ -27,9 +42,8 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
+csrf = CSRFProtect(app)
+socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins='*', logger=True, engineio_logger=True)
 
 # API configurations
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
@@ -39,18 +53,17 @@ MARKETSTACK_BASE_URL = "http://api.marketstack.com/v1"
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 NEWSAPI_BASE_URL = "https://newsapi.org/v2"
 
-# Cache for stock data (symbol -> data, timestamp)
+# Cache for stock data
 STOCK_CACHE = {}
-CACHE_TIMEOUT = 86400  # Cache for 24 hours (in seconds)
+CACHE_TIMEOUT = 86400  # 24 hours
 
-# Mock breaking news (fallback if NewsAPI fails)
+# Mock data (subset for brevity; include full data from original)
 MOCK_BREAKING_NEWS = [
     "Amprius (AMPX) surges on new EV battery contract",
     "NVIDIA (NVDA) hits $4T market cap milestone",
     "Oklo (OKLO) gains on Trump nuclear policy support"
 ]
 
-# Mock news items for modal (fallback if NewsAPI fails)
 MOCK_NEWS_ITEMS = {
     "AMPX": [{"date": "2025-07-13 09:00 EDT", "text": "Bullish pennant breakout confirmed"}, {"date": "2025-07-12 15:30 EDT", "text": "New EV battery contract announced"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades AMPX"}],
     "ABCL": [{"date": "2025-07-13 07:00 EDT", "text": "Double bottom reversal triggered"}, {"date": "2025-07-12 11:00 EDT", "text": "New biotech partnership"}, {"date": "2025-07-11 09:00 EDT", "text": "Positive trial results"}],
@@ -79,7 +92,6 @@ MOCK_NEWS_ITEMS = {
     "ENPH": [{"date": "2025-07-13 09:00 EDT", "text": "Solar inverter demand increase"}, {"date": "2025-07-12 15:30 EDT", "text": "New product launch"}, {"date": "2025-07-11 10:00 EDT", "text": "Analyst upgrades ENPH"}]
 }
 
-# Mock stock data for fallback
 MOCK_STOCK_DATA = {
     "AMPX": {"symbol": "AMPX", "close": 2.50, "open": 2.40, "high": 2.60, "low": 2.30, "volume": 300000, "trend": "Up", "macd_signal": "Buy", "mini_news": "Bullish pennant breakout", "news_items": MOCK_NEWS_ITEMS["AMPX"], "change_percent": 4.17},
     "ABCL": {"symbol": "ABCL", "close": 3.00, "open": 2.90, "high": 3.10, "low": 2.80, "volume": 250000, "trend": "Up", "macd_signal": "Buy", "mini_news": "Double bottom reversal", "news_items": MOCK_NEWS_ITEMS["ABCL"], "change_percent": 3.45},
@@ -108,21 +120,36 @@ MOCK_STOCK_DATA = {
     "ENPH": {"symbol": "ENPH", "close": 110.00, "open": 108.50, "high": 111.00, "low": 107.50, "volume": 1600000, "trend": "Up", "macd_signal": "Buy", "mini_news": "Solar inverter demand increase", "news_items": MOCK_NEWS_ITEMS["ENPH"], "change_percent": 1.38}
 }
 
-# Mock market benchmarks
 MOCK_BENCHMARKS = [
     {"symbol": "^GSPC", "name": "S&P 500", "close": 5600.12, "change": 0.45},
     {"symbol": "^DJI", "name": "Dow Jones", "close": 40000.90, "change": -0.23},
     {"symbol": "^IXIC", "name": "Nasdaq", "close": 18300.45, "change": 0.67}
 ]
 
+# WTForms for CSRF-protected forms
+class WatchlistForm(FlaskForm):
+    name = StringField('Watchlist Name', validators=[DataRequired()])
+    submit = SubmitField('Add')
+
+class RenameWatchlistForm(FlaskForm):
+    new_name = StringField('New Name', validators=[DataRequired()])
+    watchlist_id = HiddenField()
+    submit = SubmitField('Rename')
+
+class AddStockForm(FlaskForm):
+    symbol = StringField('Stock Symbol', validators=[DataRequired(), Regexp(r'^[A-Z]{1,5}$', message="Invalid stock symbol")])
+    watchlist_id = HiddenField(validators=[DataRequired()])
+    submit = SubmitField('Add Stock')
+
 # Database connection
 def get_db_connection():
     try:
         conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        logger.info("Database connection established")
         return conn
     except psycopg2.Error as e:
         flash("Database connection failed.", "error")
-        logging.error(f"Database connection error: {e}")
+        logger.error(f"Database connection error: {e}")
         return None
 
 def save_stock_data_to_db(stock_id, stock_data):
@@ -132,10 +159,8 @@ def save_stock_data_to_db(stock_id, stock_data):
 
     cur = conn.cursor()
     try:
-        # Convert volume to None if "N/A" or invalid
         volume = stock_data['volume'] if isinstance(stock_data['volume'], (int, float)) else None
-        # Ensure news_items is a JSON string
-        news_items = json.dumps(stock_data['news_items']) if isinstance(stock_data['news_items'], list) else stock_data['news_items']
+        news_items = json.dumps(stock_data['news_items'], cls=DecimalEncoder) if isinstance(stock_data['news_items'], list) else stock_data['news_items']
         cur.execute('''
             INSERT INTO stock_data (stock_id, symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -168,9 +193,10 @@ def save_stock_data_to_db(stock_id, stock_data):
             datetime.now()
         ))
         conn.commit()
+        logger.info(f"Saved stock data for {stock_data['symbol']}")
     except psycopg2.Error as e:
         conn.rollback()
-        logging.error(f"Failed to save stock data to DB: {e}")
+        logger.error(f"Failed to save stock data to DB: {e}")
     finally:
         cur.close()
         conn.close()
@@ -185,72 +211,79 @@ def fetch_stock_data_from_db(stock_id, symbol):
         cur.execute('SELECT symbol, close, open, high, low, volume, trend, macd_signal, mini_news, news_items, change_percent, created_at FROM stock_data WHERE stock_id = %s AND symbol = %s;', (stock_id, symbol))
         result = cur.fetchone()
         if result:
-            # Check if data is recent (within 24 hours)
             created_at = result[11]
             if (datetime.now() - created_at).total_seconds() < CACHE_TIMEOUT:
-                # Handle news_items if already a list (due to previous bug)
                 news_items = result[9] if isinstance(result[9], list) else json.loads(result[9]) if result[9] else []
-                return {
+                stock_data = {
                     'symbol': result[0],
-                    'close': result[1] if result[1] is not None else 'N/A',
-                    'open': result[2] if result[2] is not None else 'N/A',
-                    'high': result[3] if result[3] is not None else 'N/A',
-                    'low': result[4] if result[4] is not None else 'N/A',
+                    'close': float(result[1]) if result[1] is not None else 'N/A',
+                    'open': float(result[2]) if result[2] is not None else 'N/A',
+                    'high': float(result[3]) if result[3] is not None else 'N/A',
+                    'low': float(result[4]) if result[4] is not None else 'N/A',
                     'volume': result[5] if result[5] is not None else 'N/A',
                     'trend': result[6] if result[6] else 'N/A',
                     'macd_signal': result[7] if result[7] else 'N/A',
                     'mini_news': result[8] if result[8] else 'No recent news',
                     'news_items': news_items,
-                    'change_percent': result[10] if result[10] is not None else 0
+                    'change_percent': float(result[10]) if result[10] is not None else 0
                 }
+                logger.info(f"Fetched cached data for {symbol} from DB")
+                return stock_data
         return None
     except psycopg2.Error as e:
-        logging.error(f"Failed to fetch stock data from DB: {e}")
+        logger.error(f"Failed to fetch stock data from DB: {e}")
         return None
     finally:
         cur.close()
         conn.close()
 
 def fetch_stock_data_api(stock_id, symbol):
-    # Normalize symbol
     symbol = symbol.upper()
-    if symbol == "f":
-        symbol = "F"
+    if symbol == "F":
         flash("Corrected symbol 'f' to 'F' (Ford).", "info")
-
-    # Check cache first
-    if symbol in STOCK_CACHE:
-        cached_data, timestamp = STOCK_CACHE[symbol]
-        if (datetime.now().timestamp() - timestamp) < CACHE_TIMEOUT:
-            return cached_data
-        else:
-            del STOCK_CACHE[symbol]  # Clear expired cache
-
-    # Check database
-    db_data = fetch_stock_data_from_db(stock_id, symbol)
-    if db_data:
-        STOCK_CACHE[symbol] = (db_data, datetime.now().timestamp())
-        return db_data
-
-    # Validate symbol
-    valid_symbols = ["AMPX", "ABCL", "RZLV", "SBET", "KULR", "JNJ", "PG", "KO", "PFE", "PM", "AAPL", "MSFT", "GOOGL", "JPM", "XOM", "NVDA", "AMD", "TSLA", "RGTI", "MARA", "OKLO", "UEC", "LTBR", "NEE", "ENPH"]
-    if symbol not in valid_symbols:
+    if not re.match(r'^[A-Z]{1,5}$', symbol):
         flash(f"Invalid symbol: {symbol}. Using fallback data.", "error")
+        logger.warning(f"Invalid symbol attempted: {symbol}")
         stock_data = MOCK_STOCK_DATA.get(symbol, None)
         if stock_data:
             save_stock_data_to_db(stock_id, stock_data)
             STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+            socketio.emit('stock_update', stock_data)
         return stock_data
 
-    # Try Finnhub first
+    if symbol in STOCK_CACHE:
+        cached_data, timestamp = STOCK_CACHE[symbol]
+        if (datetime.now().timestamp() - timestamp) < CACHE_TIMEOUT:
+            logger.info(f"Cache hit for {symbol}")
+            return cached_data
+        else:
+            del STOCK_CACHE[symbol]
+
+    db_data = fetch_stock_data_from_db(stock_id, symbol)
+    if db_data:
+        STOCK_CACHE[symbol] = (db_data, datetime.now().timestamp())
+        logger.info(f"DB cache hit for {symbol}")
+        return db_data
+
+    valid_symbols = ["AMPX", "ABCL", "RZLV", "SBET", "KULR", "JNJ", "PG", "KO", "PFE", "PM", "AAPL", "MSFT", "GOOGL", "JPM", "XOM", "NVDA", "AMD", "TSLA", "RGTI", "MARA", "OKLO", "UEC", "LTBR", "NEE", "ENPH"]
+    if symbol not in valid_symbols:
+        flash(f"Invalid symbol: {symbol}. Using fallback data.", "error")
+        logger.warning(f"Symbol {symbol} not in valid list")
+        stock_data = MOCK_STOCK_DATA.get(symbol, None)
+        if stock_data:
+            save_stock_data_to_db(stock_id, stock_data)
+            STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+            socketio.emit('stock_update', stock_data)
+        return stock_data
+
     finnhub_endpoint = f"{FINNHUB_BASE_URL}/quote"
     finnhub_params = {"symbol": symbol, "token": FINNHUB_API_KEY}
     try:
         response = requests.get(finnhub_endpoint, params=finnhub_params)
         response.raise_for_status()
         data = response.json()
+        logger.info(f"Fetched Finnhub data for {symbol}")
         if 'c' in data and data['c'] is not None:
-            # Fetch news from NewsAPI
             news_endpoint = f"{NEWSAPI_BASE_URL}/everything"
             news_params = {"q": symbol, "apiKey": NEWSAPI_KEY, "language": "en", "sortBy": "publishedAt", "pageSize": 3}
             news_items = []
@@ -262,34 +295,35 @@ def fetch_stock_data_api(stock_id, symbol):
                 if news_data.get("articles"):
                     news_items = [{"date": article["publishedAt"], "text": article["title"]} for article in news_data["articles"]]
                     mini_news = news_items[0]["text"] if news_items else mini_news
+                logger.info(f"Fetched NewsAPI data for {symbol}")
             except requests.RequestException as e:
-                logging.error(f"NewsAPI error for {symbol}: {e}")
+                logger.error(f"NewsAPI error for {symbol}: {e}")
                 news_items = MOCK_NEWS_ITEMS.get(symbol, [])
                 mini_news = MOCK_NEWS_ITEMS.get(symbol, [{"text": "No recent news"}])[0]["text"]
 
             stock_data = {
                 'symbol': symbol,
-                'close': data['c'],
-                'open': data['o'],
-                'high': data['h'],
-                'low': data['l'],
-                'volume': data.get('v', None),  # Handle missing volume
+                'close': float(data['c']),
+                'open': float(data['o']),
+                'high': float(data['h']),
+                'low': float(data['l']),
+                'volume': data.get('v', None),
                 'trend': "Up" if data['c'] > data['o'] else "Down" if data['c'] < data['o'] else "Neutral",
                 'macd_signal': "Buy" if data['c'] > data['o'] else "Sell" if data['c'] < data['o'] else "Neutral",
                 'mini_news': mini_news,
                 'news_items': news_items,
-                'change_percent': ((data['c'] - data['o']) / data['o'] * 100) if data['o'] != 0 else 0
+                'change_percent': float((data['c'] - data['o']) / data['o'] * 100) if data['o'] != 0 else 0
             }
             save_stock_data_to_db(stock_id, stock_data)
             STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+            socketio.emit('stock_update', stock_data)
             return stock_data
     except HTTPError as e:
         if response.status_code == 429:
-            logging.warning(f"Finnhub rate limit exceeded for {symbol}. Falling back to Marketstack.")
+            logger.warning(f"Finnhub rate limit exceeded for {symbol}")
         else:
-            logging.error(f"Finnhub API error for {symbol}: {response.status_code} - {response.text}")
+            logger.error(f"Finnhub API error for {symbol}: {response.status_code} - {response.text}")
 
-    # Fallback to Marketstack
     marketstack_endpoint = f"{MARKETSTACK_BASE_URL}/tickers/{symbol.lower()}/eod/latest"
     marketstack_params = {"access_key": MARKETSTACK_API_KEY}
     for attempt in range(5):
@@ -302,50 +336,56 @@ def fetch_stock_data_api(stock_id, symbol):
                 mini_news = MOCK_NEWS_ITEMS.get(symbol, [{"text": "No recent news"}])[0]["text"]
                 stock_data = {
                     'symbol': symbol,
-                    'close': data.get('close', 'N/A'),
-                    'open': data.get('open', 'N/A'),
-                    'high': data.get('high', 'N/A'),
-                    'low': data.get('low', 'N/A'),
-                    'volume': data.get('volume', None),  # Handle missing volume
+                    'close': float(data.get('close', 'N/A')),
+                    'open': float(data.get('open', 'N/A')),
+                    'high': float(data.get('high', 'N/A')),
+                    'low': float(data.get('low', 'N/A')),
+                    'volume': data.get('volume', None),
                     'trend': "Up" if data.get('close', 0) > data.get('open', 0) else "Down" if data.get('close', 0) < data.get('open', 0) else "Neutral",
                     'macd_signal': "Buy" if data.get('close', 0) > data.get('open', 0) else "Sell" if data.get('close', 0) < data.get('open', 0) else "Neutral",
                     'mini_news': mini_news,
                     'news_items': news_items,
-                    'change_percent': ((data.get('close', 0) - data.get('open', 0)) / data.get('open', 0) * 100) if data.get('open', 0) != 0 else 0
+                    'change_percent': float((data.get('close', 0) - data.get('open', 0)) / data.get('open', 0) * 100) if data.get('open', 0) != 0 else 0
                 }
                 save_stock_data_to_db(stock_id, stock_data)
                 STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+                socketio.emit('stock_update', stock_data)
+                logger.info(f"Fetched Marketstack data for {symbol}")
                 return stock_data
             flash(f"No data available for {symbol}. Using fallback data.", "error")
             stock_data = MOCK_STOCK_DATA.get(symbol, None)
             if stock_data:
                 save_stock_data_to_db(stock_id, stock_data)
                 STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+                socketio.emit('stock_update', stock_data)
             return stock_data
         except HTTPError as e:
-            if response.status_code == 429:  # Rate limit
-                sleep(2 ** (attempt + 1))  # Exponential backoff
+            if response.status_code == 429:
+                sleep(2 ** (attempt + 1))
                 continue
             flash(f"Marketstack API error for {symbol}: {response.status_code}. Using fallback data.", "error")
-            logging.error(f"Marketstack API error: {response.status_code} - {response.text}")
+            logger.error(f"Marketstack API error: {response.status_code} - {response.text}")
             stock_data = MOCK_STOCK_DATA.get(symbol, None)
             if stock_data:
                 save_stock_data_to_db(stock_id, stock_data)
                 STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+                socketio.emit('stock_update', stock_data)
             return stock_data
         except requests.RequestException as e:
             flash(f"Failed to fetch data for {symbol}. Using fallback data.", "error")
-            logging.error(f"Request error: {e}")
+            logger.error(f"Request error: {e}")
             stock_data = MOCK_STOCK_DATA.get(symbol, None)
             if stock_data:
                 save_stock_data_to_db(stock_id, stock_data)
                 STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+                socketio.emit('stock_update', stock_data)
             return stock_data
     flash(f"Rate limit exceeded for {symbol}. Using fallback data.", "error")
     stock_data = MOCK_STOCK_DATA.get(symbol, None)
     if stock_data:
         save_stock_data_to_db(stock_id, stock_data)
         STOCK_CACHE[symbol] = (stock_data, datetime.now().timestamp())
+        socketio.emit('stock_update', stock_data)
     return stock_data
 
 def get_market_status():
@@ -362,13 +402,46 @@ def fetch_breaking_news():
         response = requests.get(endpoint, params=params)
         response.raise_for_status()
         data = response.json()
+        logger.info("Fetched breaking news from NewsAPI")
         return [article["title"] for article in data.get("articles", [])]
     except requests.RequestException as e:
-        logging.error(f"NewsAPI error: {e}")
+        logger.error(f"NewsAPI error: {e}")
         return MOCK_BREAKING_NEWS
+
+# Background task for periodic stock updates
+def background_task():
+    while True:
+        try:
+            conn = get_db_connection()
+            if conn:
+                cur = conn.cursor()
+                cur.execute('SELECT id, symbol FROM stocks;')
+                stocks = cur.fetchall()
+                batch_updates = []
+                for stock_id, symbol in stocks:
+                    stock_data = fetch_stock_data_api(stock_id, symbol)
+                    if stock_data:
+                        batch_updates.append(stock_data)
+                if batch_updates:
+                    socketio.emit('stock_batch_update', batch_updates)
+                    logger.info(f"Emitted batch update for {len(batch_updates)} stocks")
+                cur.close()
+                conn.close()
+        except Exception as e:
+            logger.error(f"Error in background task: {e}")
+        eventlet.sleep(300)  # Fetch every 5 minutes
+
+# Start background task on first connection
+@socketio.on('connect')
+def handle_connect():
+    logger.info("Client connected")
+    if not hasattr(app, 'background_thread'):
+        app.background_thread = socketio.start_background_task(background_task)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    watchlist_form = WatchlistForm()
+    add_stock_form = AddStockForm()
     conn = get_db_connection()
     watchlists = []
     stocks = []
@@ -382,17 +455,14 @@ def index():
     if conn:
         cur = conn.cursor()
         try:
-            # Fetch all watchlists
             cur.execute('SELECT id, name FROM watchlists ORDER BY name;')
             watchlists = cur.fetchall()
 
-            # Fetch selected watchlist name
             if selected_watchlist_id:
                 cur.execute('SELECT name FROM watchlists WHERE id = %s;', (selected_watchlist_id,))
                 result = cur.fetchone()
                 selected_watchlist_name = result[0] if result else None
 
-            # Fetch stocks
             if show_all_symbols:
                 cur.execute('SELECT DISTINCT ON (symbol) id, symbol FROM stocks ORDER BY symbol, id;')
                 stocks = cur.fetchall()
@@ -400,7 +470,6 @@ def index():
                 cur.execute('SELECT id, symbol FROM stocks WHERE watchlist_id = %s ORDER BY symbol;', (selected_watchlist_id,))
                 stocks = cur.fetchall()
 
-            # Fetch stock data
             if selected_stock_id:
                 cur.execute('SELECT id, symbol FROM stocks WHERE id = %s AND watchlist_id = %s;', (selected_stock_id, selected_watchlist_id))
                 result = cur.fetchone()
@@ -418,15 +487,13 @@ def index():
                     stock_data = fetch_stock_data_from_db(stock_id, symbol) or fetch_stock_data_api(stock_id, symbol)
                     if stock_data:
                         all_stocks_data.append(stock_data)
-                # Sort for top/worst stocks
                 all_stocks_data.sort(key=lambda x: x.get('change_percent', 0), reverse=True)
                 top_worst_stocks = all_stocks_data[:3] + all_stocks_data[-3:] if len(all_stocks_data) >= 3 else all_stocks_data
                 stock_data_list = all_stocks_data
 
         except psycopg2.Error as e:
             flash("Failed to fetch data from database.", "error")
-            logging.error(f"Database error: {e}")
-            # Fallback to mock data
+            logger.error(f"Database error: {e}")
             stock_data_list = [MOCK_STOCK_DATA[symbol] for symbol in ["AMPX", "ABCL", "RZLV", "SBET", "KULR"] if symbol in MOCK_STOCK_DATA]
             top_worst_stocks = stock_data_list[:3] + stock_data_list[-3:] if len(stock_data_list) >= 3 else stock_data_list
             stocks = [(0, symbol) for symbol in ["AMPX", "ABCL", "RZLV", "SBET", "KULR"]]
@@ -440,58 +507,61 @@ def index():
                            breaking_news=breaking_news, selected_watchlist_name=selected_watchlist_name,
                            benchmarks=MOCK_BENCHMARKS, top_worst_stocks=top_worst_stocks,
                            current_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S EDT"),
-                           market_status=get_market_status())
+                           market_status=get_market_status(),
+                           watchlist_form=watchlist_form, add_stock_form=add_stock_form)
 
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():
-    name = request.form['name']
-    if not name:
-        flash("Watchlist name cannot be empty.", "error")
-        return redirect(url_for('index'))
+    form = WatchlistForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        conn = get_db_connection()
+        if not conn:
+            return redirect(url_for('index'))
 
-    conn = get_db_connection()
-    if not conn:
-        return redirect(url_for('index'))
-
-    cur = conn.cursor()
-    try:
-        cur.execute('INSERT INTO watchlists (name) VALUES (%s) RETURNING id;', (name,))
-        conn.commit()
-        flash("Watchlist added successfully.", "success")
-    except psycopg2.Error as e:
-        conn.rollback()
-        flash("Failed to add watchlist.", "error")
-        logging.error(f"Failed to add watchlist: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
+        cur = conn.cursor()
+        try:
+            cur.execute('INSERT INTO watchlists (name) VALUES (%s) RETURNING id;', (name,))
+            conn.commit()
+            flash("Watchlist added successfully.", "success")
+            logger.info(f"Added watchlist: {name}")
+        except psycopg2.Error as e:
+            conn.rollback()
+            flash("Failed to add watchlist.", "error")
+            logger.error(f"Failed to add watchlist: {e}")
+        finally:
+            cur.close()
+            conn.close()
+    else:
+        flash("Invalid watchlist name.", "error")
+        logger.warning(f"Invalid watchlist form submission: {form.errors}")
     return redirect(url_for('index'))
 
 @app.route('/rename_watchlist/<int:watchlist_id>', methods=['POST'])
 def rename_watchlist(watchlist_id):
-    new_name = request.form['new_name']
-    if not new_name:
-        flash("New watchlist name cannot be empty.", "error")
-        return redirect(url_for('index', watchlist_id=watchlist_id))
+    form = RenameWatchlistForm()
+    if form.validate_on_submit():
+        new_name = form.new_name.data
+        conn = get_db_connection()
+        if not conn:
+            return redirect(url_for('index', watchlist_id=watchlist_id))
 
-    conn = get_db_connection()
-    if not conn:
-        return redirect(url_for('index', watchlist_id=watchlist_id))
-
-    cur = conn.cursor()
-    try:
-        cur.execute('UPDATE watchlists SET name = %s WHERE id = %s;', (new_name, watchlist_id))
-        conn.commit()
-        flash("Watchlist renamed successfully.", "success")
-    except psycopg2.Error as e:
-        conn.rollback()
-        flash("Failed to rename watchlist.", "error")
-        logging.error(f"Failed to rename watchlist: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
+        cur = conn.cursor()
+        try:
+            cur.execute('UPDATE watchlists SET name = %s WHERE id = %s;', (new_name, watchlist_id))
+            conn.commit()
+            flash("Watchlist renamed successfully.", "success")
+            logger.info(f"Renamed watchlist {watchlist_id} to {new_name}")
+        except psycopg2.Error as e:
+            conn.rollback()
+            flash("Failed to rename watchlist.", "error")
+            logger.error(f"Failed to rename watchlist: {e}")
+        finally:
+            cur.close()
+            conn.close()
+    else:
+        flash("Invalid watchlist name.", "error")
+        logger.warning(f"Invalid rename watchlist form submission: {form.errors}")
     return redirect(url_for('index', watchlist_id=watchlist_id))
 
 @app.route('/delete_watchlist/<int:watchlist_id>', methods=['POST'])
@@ -508,55 +578,54 @@ def delete_watchlist(watchlist_id):
         cur.execute('DELETE FROM watchlists WHERE id = %s;', (watchlist_id,))
         conn.commit()
         flash("Watchlist deleted successfully.", "success")
+        logger.info(f"Deleted watchlist {watchlist_id}")
     except psycopg2.Error as e:
         conn.rollback()
         flash("Failed to delete watchlist.", "error")
-        logging.error(f"Failed to delete watchlist: {e}")
+        logger.error(f"Failed to delete watchlist: {e}")
     finally:
         cur.close()
         conn.close()
-
     return redirect(url_for('index'))
 
 @app.route('/add_stock', methods=['POST'])
 def add_stock():
-    watchlist_id = request.form['watchlist_id']
-    symbol = request.form['symbol'].upper()
-    if not symbol or not watchlist_id:
-        flash("Stock symbol or watchlist ID cannot be empty.", "error")
-        return redirect(url_for('index'))
+    form = AddStockForm()
+    if form.validate_on_submit():
+        watchlist_id = form.watchlist_id.data
+        symbol = form.symbol.data.upper()
+        valid_symbols = ["AMPX", "ABCL", "RZLV", "SBET", "KULR", "JNJ", "PG", "KO", "PFE", "PM", "AAPL", "MSFT", "GOOGL", "JPM", "XOM", "NVDA", "AMD", "TSLA", "RGTI", "MARA", "OKLO", "UEC", "LTBR", "NEE", "ENPH"]
+        if symbol == "F":
+            flash("Corrected symbol 'f' to 'F' (Ford).", "info")
+        elif symbol not in valid_symbols:
+            flash(f"Invalid symbol: {symbol}.", "error")
+            logger.warning(f"Attempted to add invalid stock symbol: {symbol}")
+            return redirect(url_for('index'))
 
-    # Validate symbol
-    valid_symbols = ["AMPX", "ABCL", "RZLV", "SBET", "KULR", "JNJ", "PG", "KO", "PFE", "PM", "AAPL", "MSFT", "GOOGL", "JPM", "XOM", "NVDA", "AMD", "TSLA", "RGTI", "MARA", "OKLO", "UEC", "LTBR", "NEE", "ENPH"]
-    if symbol == "f":
-        symbol = "F"
-        flash("Corrected symbol 'f' to 'F' (Ford).", "info")
-    elif symbol not in valid_symbols:
-        flash(f"Invalid symbol: {symbol}.", "error")
-        return redirect(url_for('index'))
+        conn = get_db_connection()
+        if not conn:
+            return redirect(url_for('index'))
 
-    conn = get_db_connection()
-    if not conn:
-        return redirect(url_for('index'))
-
-    cur = conn.cursor()
-    try:
-        cur.execute('INSERT INTO stocks (watchlist_id, symbol) VALUES (%s, %s) RETURNING id;', (watchlist_id, symbol))
-        stock_id = cur.fetchone()[0]
-        conn.commit()
-        flash("Stock added successfully.", "success")
-        # Fetch and save stock data
-        stock_data = fetch_stock_data_api(stock_id, symbol)
-        if stock_data:
-            save_stock_data_to_db(stock_id, stock_data)
-    except psycopg2.Error as e:
-        conn.rollback()
-        flash("Failed to add stock.", "error")
-        logging.error(f"Failed to add stock: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
+        cur = conn.cursor()
+        try:
+            cur.execute('INSERT INTO stocks (watchlist_id, symbol) VALUES (%s, %s) RETURNING id;', (watchlist_id, symbol))
+            stock_id = cur.fetchone()[0]
+            conn.commit()
+            flash("Stock added successfully.", "success")
+            logger.info(f"Added stock {symbol} to watchlist {watchlist_id}")
+            stock_data = fetch_stock_data_api(stock_id, symbol)
+            if stock_data:
+                save_stock_data_to_db(stock_id, stock_data)
+        except psycopg2.Error as e:
+            conn.rollback()
+            flash("Failed to add stock.", "error")
+            logger.error(f"Failed to add stock: {e}")
+        finally:
+            cur.close()
+            conn.close()
+    else:
+        flash("Invalid stock symbol or watchlist ID.", "error")
+        logger.warning(f"Invalid add stock form submission: {form.errors}")
     return redirect(url_for('index', watchlist_id=watchlist_id))
 
 @app.route('/delete_stock/<int:stock_id>', methods=['POST'])
@@ -579,23 +648,25 @@ def delete_stock(stock_id):
         cur.execute('DELETE FROM stocks WHERE id = %s;', (stock_id,))
         conn.commit()
         flash("Stock deleted successfully.", "success")
+        logger.info(f"Deleted stock {stock_id}")
     except psycopg2.Error as e:
         conn.rollback()
         flash("Failed to delete stock.", "error")
-        logging.error(f"Failed to delete stock: {e}")
+        logger.error(f"Failed to delete stock: {e}")
     finally:
         cur.close()
         conn.close()
-
     return redirect(url_for('index', watchlist_id=watchlist_id))
 
 @app.errorhandler(404)
 def page_not_found(e):
+    logger.error(f"404 error: {e}")
     return render_template('error.html', error="Page not found."), 404
 
 @app.errorhandler(500)
 def server_error(e):
+    logger.error(f"500 error: {e}")
     return render_template('error.html', error="Internal server error."), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5002)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5002)

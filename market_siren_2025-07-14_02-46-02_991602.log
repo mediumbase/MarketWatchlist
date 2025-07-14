@@ -1,0 +1,118 @@
+2025-07-14T02:46:04.119896-0400 INFO Client connected
+2025-07-14T02:46:04.158201-0400 INFO Database connection established
+2025-07-14T02:46:04.193708-0400 INFO Database connection established
+2025-07-14T02:46:04.196924-0400 INFO Fetched cached data for AMPX from DB
+2025-07-14T02:46:04.197443-0400 INFO DB cache hit for AMPX
+2025-07-14T02:46:04.228358-0400 INFO Database connection established
+2025-07-14T02:46:04.232770-0400 INFO Fetched cached data for ABCL from DB
+2025-07-14T02:46:04.233334-0400 INFO DB cache hit for ABCL
+2025-07-14T02:46:04.281060-0400 INFO Database connection established
+2025-07-14T02:46:04.284607-0400 INFO Fetched cached data for RZLV from DB
+2025-07-14T02:46:04.285167-0400 INFO DB cache hit for RZLV
+2025-07-14T02:46:04.330523-0400 INFO Database connection established
+2025-07-14T02:46:04.335433-0400 INFO Fetched cached data for SBET from DB
+2025-07-14T02:46:04.335962-0400 INFO DB cache hit for SBET
+2025-07-14T02:46:04.393251-0400 INFO Database connection established
+2025-07-14T02:46:04.396498-0400 INFO Fetched cached data for KULR from DB
+2025-07-14T02:46:04.397052-0400 INFO DB cache hit for KULR
+2025-07-14T02:46:04.434051-0400 INFO Database connection established
+2025-07-14T02:46:04.438402-0400 INFO Fetched cached data for JNJ from DB
+2025-07-14T02:46:04.441554-0400 INFO DB cache hit for JNJ
+2025-07-14T02:46:04.490666-0400 INFO Database connection established
+2025-07-14T02:46:04.502532-0400 INFO Fetched cached data for PG from DB
+2025-07-14T02:46:04.503150-0400 INFO DB cache hit for PG
+2025-07-14T02:46:04.564055-0400 INFO Database connection established
+2025-07-14T02:46:04.567100-0400 INFO Fetched cached data for KO from DB
+2025-07-14T02:46:04.567632-0400 INFO DB cache hit for KO
+2025-07-14T02:46:04.603491-0400 INFO Database connection established
+2025-07-14T02:46:04.608040-0400 INFO Fetched cached data for PFE from DB
+2025-07-14T02:46:04.608602-0400 INFO DB cache hit for PFE
+2025-07-14T02:46:04.643591-0400 INFO Database connection established
+2025-07-14T02:46:04.646478-0400 INFO Fetched cached data for PM from DB
+2025-07-14T02:46:04.646977-0400 INFO DB cache hit for PM
+2025-07-14T02:46:04.682058-0400 INFO Database connection established
+2025-07-14T02:46:04.685270-0400 INFO Fetched cached data for AAPL from DB
+2025-07-14T02:46:04.685755-0400 INFO DB cache hit for AAPL
+2025-07-14T02:46:04.721598-0400 INFO Database connection established
+2025-07-14T02:46:04.729521-0400 INFO Fetched cached data for MSFT from DB
+2025-07-14T02:46:04.730109-0400 INFO DB cache hit for MSFT
+2025-07-14T02:46:04.782468-0400 INFO Database connection established
+2025-07-14T02:46:04.790762-0400 INFO Fetched cached data for GOOGL from DB
+2025-07-14T02:46:04.791381-0400 INFO DB cache hit for GOOGL
+2025-07-14T02:46:04.832549-0400 INFO Database connection established
+2025-07-14T02:46:04.836397-0400 INFO Fetched cached data for JPM from DB
+2025-07-14T02:46:04.836958-0400 INFO DB cache hit for JPM
+2025-07-14T02:46:04.881302-0400 INFO Database connection established
+2025-07-14T02:46:04.885658-0400 INFO Fetched cached data for XOM from DB
+2025-07-14T02:46:04.886355-0400 INFO DB cache hit for XOM
+2025-07-14T02:46:04.923510-0400 INFO Database connection established
+2025-07-14T02:46:04.927417-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T02:46:04.928990-0400 INFO DB cache hit for NVDA
+2025-07-14T02:46:05.012446-0400 INFO Database connection established
+2025-07-14T02:46:05.018731-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T02:46:05.019357-0400 INFO DB cache hit for AMD
+2025-07-14T02:46:05.071023-0400 INFO Database connection established
+2025-07-14T02:46:05.073791-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T02:46:05.074339-0400 INFO DB cache hit for TSLA
+2025-07-14T02:46:05.104380-0400 INFO Database connection established
+2025-07-14T02:46:05.107768-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T02:46:05.108325-0400 INFO DB cache hit for RGTI
+2025-07-14T02:46:05.152121-0400 INFO Database connection established
+2025-07-14T02:46:05.155044-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T02:46:05.155765-0400 INFO DB cache hit for MARA
+2025-07-14T02:46:05.195077-0400 INFO Database connection established
+2025-07-14T02:46:05.198941-0400 INFO Fetched cached data for OKLO from DB
+2025-07-14T02:46:05.199455-0400 INFO DB cache hit for OKLO
+2025-07-14T02:46:05.229197-0400 INFO Database connection established
+2025-07-14T02:46:05.232979-0400 INFO Fetched cached data for UEC from DB
+2025-07-14T02:46:05.233540-0400 INFO DB cache hit for UEC
+2025-07-14T02:46:05.285016-0400 INFO Database connection established
+2025-07-14T02:46:05.290627-0400 INFO Fetched cached data for LTBR from DB
+2025-07-14T02:46:05.291277-0400 INFO DB cache hit for LTBR
+2025-07-14T02:46:05.341466-0400 INFO Database connection established
+2025-07-14T02:46:05.345707-0400 INFO Fetched cached data for NEE from DB
+2025-07-14T02:46:05.346355-0400 INFO DB cache hit for NEE
+2025-07-14T02:46:05.401765-0400 INFO Database connection established
+2025-07-14T02:46:05.405974-0400 INFO Fetched cached data for ENPH from DB
+2025-07-14T02:46:05.406551-0400 INFO DB cache hit for ENPH
+2025-07-14T02:46:05.406940-0400 ERROR Error in background task: emit() got an unexpected keyword argument 'json'
+2025-07-14T02:46:05.708759-0400 INFO Database connection established
+2025-07-14T02:46:05.755633-0400 INFO Database connection established
+2025-07-14T02:46:05.759526-0400 INFO Fetched cached data for AMD from DB
+2025-07-14T02:46:05.809801-0400 INFO Database connection established
+2025-07-14T02:46:05.813248-0400 INFO Fetched cached data for MARA from DB
+2025-07-14T02:46:05.858497-0400 INFO Database connection established
+2025-07-14T02:46:05.862938-0400 INFO Fetched cached data for NVDA from DB
+2025-07-14T02:46:05.908808-0400 INFO Database connection established
+2025-07-14T02:46:05.912706-0400 INFO Fetched cached data for RGTI from DB
+2025-07-14T02:46:05.972820-0400 INFO Database connection established
+2025-07-14T02:46:05.975538-0400 INFO Fetched cached data for TSLA from DB
+2025-07-14T02:46:06.327113-0400 INFO Fetched breaking news from NewsAPI
+2025-07-14T02:46:06.769807-0400 INFO Client connected
+2025-07-14T02:51:05.452233-0400 INFO Database connection established
+2025-07-14T02:51:05.455520-0400 INFO Cache hit for AMPX
+2025-07-14T02:51:05.456006-0400 INFO Cache hit for ABCL
+2025-07-14T02:51:05.456617-0400 INFO Cache hit for RZLV
+2025-07-14T02:51:05.457221-0400 INFO Cache hit for SBET
+2025-07-14T02:51:05.459518-0400 INFO Cache hit for KULR
+2025-07-14T02:51:05.459785-0400 INFO Cache hit for JNJ
+2025-07-14T02:51:05.460010-0400 INFO Cache hit for PG
+2025-07-14T02:51:05.460222-0400 INFO Cache hit for KO
+2025-07-14T02:51:05.460545-0400 INFO Cache hit for PFE
+2025-07-14T02:51:05.460845-0400 INFO Cache hit for PM
+2025-07-14T02:51:05.461167-0400 INFO Cache hit for AAPL
+2025-07-14T02:51:05.461546-0400 INFO Cache hit for MSFT
+2025-07-14T02:51:05.461856-0400 INFO Cache hit for GOOGL
+2025-07-14T02:51:05.462288-0400 INFO Cache hit for JPM
+2025-07-14T02:51:05.462758-0400 INFO Cache hit for XOM
+2025-07-14T02:51:05.463134-0400 INFO Cache hit for NVDA
+2025-07-14T02:51:05.463560-0400 INFO Cache hit for AMD
+2025-07-14T02:51:05.463989-0400 INFO Cache hit for TSLA
+2025-07-14T02:51:05.464426-0400 INFO Cache hit for RGTI
+2025-07-14T02:51:05.464701-0400 INFO Cache hit for MARA
+2025-07-14T02:51:05.465075-0400 INFO Cache hit for OKLO
+2025-07-14T02:51:05.465459-0400 INFO Cache hit for UEC
+2025-07-14T02:51:05.465767-0400 INFO Cache hit for LTBR
+2025-07-14T02:51:05.466110-0400 INFO Cache hit for NEE
+2025-07-14T02:51:05.466499-0400 INFO Cache hit for ENPH
+2025-07-14T02:51:05.466757-0400 ERROR Error in background task: emit() got an unexpected keyword argument 'json'
