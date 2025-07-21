@@ -2,7 +2,7 @@
 <!-- Version: 2.3.4 -->
 <!-- Date: 2025-07-14 -->
 <!-- Time: 04:54 EDT -->
-<!-- Description: Market Siren dashboard with real-time updates, CSRF protection, and Holdings metrics -->
+<!-- Description: Market Watchlist dashboard with real-time updates, CSRF protection, and Holdings metrics -->
 <!-- Changes: -->
 <!-- - 2.2.0: Added SocketIO for real-time updates, improved client-side row handling, CSRF tokens -->
 <!-- - 2.3.0: Moved All Symbols to a button, added Holdings watchlist, integrated Holdings Metrics div -->
@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Market Siren Dashboard</title>
+    <title>Market Watchlist Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.0.1/dist/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -455,7 +455,7 @@
 </head>
 <body>
     <div class="top-header">
-        <div class="logo">Market Siren</div>
+        <div class="logo">Market Watchlist</div>
         <div class="dropdown">
             <button class="dropdown-btn">Menu</button>
             <div class="dropdown-content">
@@ -469,7 +469,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>Market Siren Dashboard</h1>
+            <h1>Market Watchlist Dashboard</h1>
         </div>
 
         <div class="flash-messages">

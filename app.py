@@ -2,7 +2,7 @@
 # Version: 2.3.6
 # Date: 2025-07-14
 # Time: 04:40 EDT
-# Description: Market Siren watchlist application with real-time updates, enhanced logging, validation, and Holdings metrics
+# Description: Market Watchlist application with real-time updates, enhanced logging, validation, and Holdings metrics
 # Changes:
 # - 2.3.0: Added Flask-SocketIO for real-time updates, loguru for structured logging, regex for symbol validation, CSRF protection
 # - 2.3.1: Fixed Decimal serialization issue for SocketIO batch updates
@@ -38,7 +38,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(obj)
 
 # Initialize logging
-logger.add("market_siren_{time}.log", rotation="1 MB", format="{time} {level} {message}")
+logger.add("market_watchlist_{time}.log", rotation="1 MB", format="{time} {level} {message}")
 
 # Load environment variables
 load_dotenv()
@@ -662,7 +662,8 @@ def delete_watchlist(watchlist_id):
     cur = conn.cursor()
     try:
         cur.execute('SELECT name FROM watchlists WHERE id = %s;', (watchlist_id,))
-        if cur.fetchone()[0].lower() == 'holdings':
+        result = cur.fetchone()
+        if result and result[0].lower() == 'holdings':
             flash("Cannot delete the Holdings watchlist.", "error")
         else:
             cur.execute('DELETE FROM stock_data WHERE stock_id IN (SELECT id FROM stocks WHERE watchlist_id = %s);', (watchlist_id,))
@@ -772,4 +773,4 @@ def server_error(e):
     return render_template('error.html', error="Internal server error."), 500
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=5002)
+    socketio.run(app, debug=True, host='0.0.0.0', port=8000)
